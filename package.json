@@ -1,0 +1,22 @@
+{
+  "name": "price-monitor-bot",
+  "version": "1.0.0",
+  "description": "Automated price monitoring and order placement system for multiple subdomains",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "keywords": ["automation", "price-monitor", "playwright", "web-scraping"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "playwright": "^1.40.0",
+    "ws": "^8.14.2",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

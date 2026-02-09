@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TMS Price Monitor & Order Bot</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>TMS Price Monitor & Order Bot</h1>
+      <div class="status-indicator" id="statusIndicator">
+        <span class="status-dot"></span>
+        <span id="statusText">Idle</span>
+      </div>
+    </header>
+
+    <div class="dashboard-grid">
+      <!-- Configuration Panel -->
+      <section class="panel config-panel">
+        <h2>Configuration</h2>
+
+        <div class="config-section">
+          <h3>Companies to Monitor</h3>
+          <div class="companies-config" id="companiesConfig">
+            <div class="company-row">
+              <label><input type="checkbox" id="chk_NLO" checked> NLO</label>
+              <input type="number" id="price_NLO" value="254.1" step="0.1" placeholder="Target Price">
+            </div>
+            <div class="company-row">
+              <label><input type="checkbox" id="chk_SYPNL" checked> SYPNL</label>
+              <input type="number" id="price_SYPNL" value="684.8" step="0.1" placeholder="Target Price">
+            </div>
+            <div class="company-row">
+              <label><input type="checkbox" id="chk_JHAPA"> JHAPA</label>
+              <input type="number" id="price_JHAPA" value="1073.6" step="0.1" placeholder="Target Price">
+            </div>
+            <div class="company-row">
+              <label><input type="checkbox" id="chk_SWASTIK"> SWASTIK</label>
+              <input type="number" id="price_SWASTIK" value="2327.0" step="0.1" placeholder="Target Price">
+            </div>
+            <div class="company-row">
+              <label><input type="checkbox" id="chk_SAIL"> SAIL</label>
+              <input type="number" id="price_SAIL" value="781.7" step="0.1" placeholder="Target Price">
+            </div>
+          </div>
+          <button onclick="app.saveCompanyConfig()" class="btn btn-primary">Save Company Config</button>
+        </div>
+
+        <div class="config-section">
+          <h3>Scripts</h3>
+          <div class="script-buttons">
+            <button onclick="app.loadDefaultPriceScript()" class="btn btn-secondary">Load Price Check Script</button>
+            <button onclick="app.loadDefaultOrderScript()" class="btn btn-secondary">Load Order Script</button>
+          </div>
+          <details>
+            <summary>Price Check Script (Advanced)</summary>
+            <textarea id="priceScript" rows="4"></textarea>
+            <button onclick="app.setPriceScript()" class="btn btn-primary">Save Script</button>
+          </details>
+          <details>
+            <summary>Order Placement Script (Advanced)</summary>
+            <textarea id="orderScript" rows="4"></textarea>
+            <button onclick="app.setOrderScript()" class="btn btn-primary">Save Script</button>
+          </details>
+        </div>
+
+        <div class="controls">
+          <button onclick="app.startMonitoring()" id="startBtn" class="btn btn-success btn-large">Start Monitoring</button>
+          <button onclick="app.stopMonitoring()" id="stopBtn" class="btn btn-danger btn-large" disabled>Stop Monitoring</button>
+        </div>
+      </section>
+
+      <!-- Subdomains Panel -->
+      <section class="panel subdomains-panel">
+        <h2>Subdomains Configuration</h2>
+
+        <div class="order-summary-bar">
+          <span class="order-summary-label">Order Config:</span>
+          <span id="orderSummary"><span class="order-tag none">No order config</span></span>
+        </div>
+
+        <div class="subdomain-legend">
+          <span class="legend-item"><span class="dot price-check"></span> Price Check</span>
+          <span class="legend-item"><span class="dot order-place"></span> Order Place</span>
+          <span class="legend-item"><span class="dot both"></span> Both</span>
+        </div>
+
+        <div class="add-subdomain">
+          <input type="text" id="subdomainUrl" placeholder="URL (e.g., https://tms13.nepsetms.com.np)">
+          <input type="text" id="subdomainName" placeholder="Name (e.g., TMS 13)">
+          <select id="subdomainRole">
+            <option value="both">Both (Price + Order)</option>
+            <option value="price">Price Check Only</option>
+            <option value="order">Order Place Only</option>
+          </select>
+          <select id="subdomainType">
+            <option value="nepse">NEPSE TMS</option>
+            <option value="ats">ATS</option>
+          </select>
+          <button onclick="app.addSubdomain()" class="btn btn-primary">Add</button>
+        </div>
+
+        <div class="bulk-actions">
+          <button onclick="app.syncSubdomains()" class="btn btn-primary btn-small">Sync from Order Config</button>
+          <button onclick="app.setAllRole('price')" class="btn btn-secondary btn-small">All → Price Check</button>
+          <button onclick="app.setAllRole('order')" class="btn btn-secondary btn-small">All → Order Place</button>
+          <button onclick="app.setAllRole('both')" class="btn btn-secondary btn-small">All → Both</button>
+        </div>
+
+        <div id="subdomainsList" class="subdomains-list">
+          <!-- Subdomains will be dynamically loaded here -->
+        </div>
+      </section>
+
+      <!-- ATS Config Panel (shown only when ATS subdomains exist) -->
+      <section class="panel ats-panel" id="atsPanel" style="display:none;">
+        <h2>ATS Broker Config</h2>
+        <div id="atsConfigList" class="ats-config-list">
+          <!-- ATS config fields will be dynamically loaded here -->
+        </div>
+        <button onclick="app.saveAtsConfig()" class="btn btn-primary" style="margin-top:10px;">Save ATS Config</button>
+      </section>
+
+      <!-- Logs Panel -->
+      <section class="panel logs-panel">
+        <h2>Logs</h2>
+        <div class="logs-header">
+          <span id="priceCheckCount">Price Check: 0</span>
+          <span id="orderPlaceCount">Order Place: 0</span>
+          <button onclick="app.clearLogs()" class="btn btn-secondary btn-small">Clear Logs</button>
+        </div>
+        <div id="logsList" class="logs-list">
+          <!-- Logs will be dynamically added here -->
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
