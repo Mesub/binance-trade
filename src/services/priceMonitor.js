@@ -1,6 +1,5 @@
 const BrowserService = require('./browserService');
 const OrderService = require('./orderService');
-const RateLimiter = require('../utils/rateLimiter');
 const fs = require('fs').promises;
 const path = require('path');
 const companiesConfig = require('../../config/companies');
@@ -27,7 +26,6 @@ class PriceMonitor {
     this.browserOpen = false;
     this.browserService = new BrowserService();
     this.orderService = new OrderService(this.browserService);
-    this.rateLimiter = new RateLimiter(2, 1000); // 2 requests per second
     this.logs = [];
     this.configFile = path.join(__dirname, '../../config/config.json');
 
@@ -652,8 +650,10 @@ class PriceMonitor {
         if (!this.isMonitoring) break;
 
         try {
-          // Wait for rate limiter (respects 2 req/sec)
-          await this.rateLimiter.waitForSlot();
+          // Delay between requests: 0ms for ATS, 230ms for NEPSE
+          if (subdomain.type !== 'ats' && i > 0) {
+            await new Promise(resolve => setTimeout(resolve, 230));
+          }
 
           subdomain.status = 'checking';
           this.broadcast({ type: 'subdomains', data: this.subdomains });
