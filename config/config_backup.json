@@ -1,0 +1,927 @@
+{
+  "subdomains": [
+    {
+      "id": "TMS17",
+      "accountId": "TMS17",
+      "url": "https://tms17.nepsetms.com.np/",
+      "scriptId": "tms17",
+      "name": "TMS17",
+      "domain": "nepsetms.com.np",
+      "enabled": true,
+      "role": "none",
+      "type": "nepse",
+      "status": "idle",
+      "lastPrice": null,
+      "lastCheck": null
+    },
+    {
+      "id": "TMS18",
+      "accountId": "TMS18",
+      "url": "https://tms18.nepsetms.com.np/",
+      "scriptId": "tms18",
+      "name": "TMS18",
+      "domain": "nepsetms.com.np",
+      "enabled": true,
+      "role": "none",
+      "type": "nepse",
+      "status": "idle",
+      "lastPrice": null,
+      "lastCheck": null
+    },
+    {
+      "id": "TMS32",
+      "accountId": "TMS32",
+      "url": "https://tms32.nepsetms.com.np/",
+      "scriptId": "tms32",
+      "name": "TMS32",
+      "domain": "nepsetms.com.np",
+      "enabled": true,
+      "role": "none",
+      "type": "nepse",
+      "status": "idle",
+      "lastPrice": null,
+      "lastCheck": null
+    },
+    {
+      "id": "TMS34",
+      "accountId": "TMS34",
+      "url": "https://tms34.nepsetms.com.np/",
+      "scriptId": "tms34",
+      "name": "TMS34",
+      "domain": "nepsetms.com.np",
+      "enabled": true,
+      "role": "none",
+      "type": "nepse",
+      "status": "idle",
+      "lastPrice": null,
+      "lastCheck": null
+    },
+    {
+      "id": "TMS35",
+      "accountId": "TMS35",
+      "url": "https://tms35.nepsetms.com.np/",
+      "scriptId": "tms35",
+      "name": "TMS35",
+      "domain": "nepsetms.com.np",
+      "enabled": true,
+      "role": "none",
+      "type": "nepse",
+      "status": "idle",
+      "lastPrice": null,
+      "lastCheck": null
+    },
+    {
+      "id": "TMS41",
+      "accountId": "TMS41",
+      "url": "https://tms41.nepsetms.com.np/",
+      "scriptId": "tms41",
+      "name": "TMS41",
+      "domain": "nepsetms.com.np",
+      "enabled": true,
+      "role": "none",
+      "type": "nepse",
+      "status": "idle",
+      "lastPrice": null,
+      "lastCheck": null
+    },
+    {
+      "id": "TMS45",
+      "accountId": "TMS45",
+      "url": "https://tms45.nepsetms.com.np/",
+      "scriptId": "tms45",
+      "name": "TMS45",
+      "domain": "nepsetms.com.np",
+      "enabled": true,
+      "role": "none",
+      "type": "nepse",
+      "status": "idle",
+      "lastPrice": null,
+      "lastCheck": null
+    },
+    {
+      "id": "TMS55",
+      "accountId": "TMS55",
+      "url": "https://tms55.nepsetms.com.np/",
+      "scriptId": "tms55",
+      "name": "TMS55",
+      "domain": "nepsetms.com.np",
+      "enabled": true,
+      "role": "none",
+      "type": "nepse",
+      "status": "idle",
+      "lastPrice": null,
+      "lastCheck": null
+    },
+    {
+      "id": "TMS57",
+      "accountId": "TMS57",
+      "url": "https://tms57.nepsetms.com.np/",
+      "scriptId": "tms57",
+      "name": "TMS57",
+      "domain": "nepsetms.com.np",
+      "enabled": true,
+      "role": "none",
+      "type": "nepse",
+      "status": "idle",
+      "lastPrice": null,
+      "lastCheck": null
+    },
+    {
+      "id": "TMS59",
+      "accountId": "TMS59",
+      "url": "https://tms59.nepsetms.com.np/",
+      "scriptId": "tms59",
+      "name": "TMS59",
+      "domain": "nepsetms.com.np",
+      "enabled": true,
+      "role": "none",
+      "type": "nepse",
+      "status": "idle",
+      "lastPrice": null,
+      "lastCheck": null
+    },
+    {
+      "id": "TMS61",
+      "accountId": "TMS61",
+      "url": "https://tms61.nepsetms.com.np/",
+      "scriptId": "tms61",
+      "name": "TMS61",
+      "domain": "nepsetms.com.np",
+      "enabled": true,
+      "role": "none",
+      "type": "nepse",
+      "status": "idle",
+      "lastPrice": null,
+      "lastCheck": null
+    },
+    {
+      "id": "TMS63",
+      "accountId": "TMS63",
+      "url": "https://tms63.nepsetms.com.np/",
+      "scriptId": "tms63",
+      "name": "TMS63",
+      "domain": "nepsetms.com.np",
+      "enabled": true,
+      "role": "none",
+      "type": "nepse",
+      "status": "idle",
+      "lastPrice": null,
+      "lastCheck": null
+    },
+    {
+      "id": "TMS64",
+      "accountId": "TMS64",
+      "url": "https://tms64.nepsetms.com.np/",
+      "scriptId": "tms64",
+      "name": "TMS64",
+      "domain": "nepsetms.com.np",
+      "enabled": true,
+      "role": "none",
+      "type": "nepse",
+      "status": "idle",
+      "lastPrice": null,
+      "lastCheck": null
+    },
+    {
+      "id": "TMS74",
+      "accountId": "TMS74",
+      "url": "https://tms74.nepsetms.com.np/",
+      "scriptId": "tms74",
+      "name": "TMS74",
+      "domain": "nepsetms.com.np",
+      "enabled": true,
+      "role": "none",
+      "type": "nepse",
+      "status": "idle",
+      "lastPrice": null,
+      "lastCheck": null
+    },
+    {
+      "id": "TMS77",
+      "accountId": "TMS77",
+      "url": "https://tms77.nepsetms.com.np/",
+      "scriptId": "tms77",
+      "name": "TMS77",
+      "domain": "nepsetms.com.np",
+      "enabled": true,
+      "role": "none",
+      "type": "nepse",
+      "status": "idle",
+      "lastPrice": null,
+      "lastCheck": null
+    },
+    {
+      "id": "TMS87",
+      "accountId": "TMS87",
+      "url": "https://tms87.nepsetms.com.np/",
+      "scriptId": "tms87",
+      "name": "TMS87",
+      "domain": "nepsetms.com.np",
+      "enabled": true,
+      "role": "none",
+      "type": "nepse",
+      "status": "idle",
+      "lastPrice": null,
+      "lastCheck": null
+    },
+    {
+      "id": "TMS13",
+      "accountId": "TMS13",
+      "url": "https://tms13.nepsetms.com.np/",
+      "scriptId": "tms13",
+      "name": "TMS13",
+      "domain": "nepsetms.com.np",
+      "enabled": true,
+      "role": "none",
+      "type": "nepse",
+      "status": "idle",
+      "lastPrice": null,
+      "lastCheck": null
+    },
+    {
+      "id": "BHAGWOTI",
+      "accountId": "BHAGWOTI",
+      "url": "https://tms.stockhouse.com.np/atsweb",
+      "scriptId": "tms",
+      "name": "BHAGWOTI",
+      "domain": "stockhouse.com.np",
+      "enabled": true,
+      "role": "none",
+      "type": "ats",
+      "status": "idle",
+      "lastPrice": null,
+      "lastCheck": null,
+      "broker": "NSH",
+      "acntid": "60152",
+      "clientAcc": "202206093068140 ( BHAGWOTI ADHIKARI-)"
+    },
+    {
+      "id": "SUBASH",
+      "accountId": "SUBASH",
+      "url": "https://tms.stockhouse.com.np/atsweb",
+      "scriptId": "tms",
+      "name": "SUBASH",
+      "domain": "stockhouse.com.np",
+      "enabled": true,
+      "role": "none",
+      "type": "ats",
+      "status": "idle",
+      "lastPrice": null,
+      "lastCheck": null,
+      "broker": "NSH",
+      "acntid": "75684",
+      "clientAcc": "202101051789279 ( SUBASH ADHIKARI-461002/1233 )"
+    },
+    {
+      "id": "SUBASH64",
+      "accountId": "SUBASH64",
+      "url": "https://tms.sunsecurities.com/atsweb",
+      "scriptId": "tms",
+      "name": "SUBASH64",
+      "domain": "sunsecurities.com",
+      "enabled": true,
+      "role": "none",
+      "type": "ats",
+      "status": "idle",
+      "lastPrice": null,
+      "lastCheck": null,
+      "broker": "NSH",
+      "acntid": "4731",
+      "clientAcc": "202101051789279 ( SUBASH ADHIKARI-)"
+    },
+    {
+      "id": "SUBASH36",
+      "accountId": "SUBASH36",
+      "url": "https://tms.ssl.com.np/atsweb",
+      "scriptId": "tms",
+      "name": "SUBASH36",
+      "domain": "ssl.com.np",
+      "enabled": true,
+      "role": "none",
+      "type": "ats",
+      "status": "idle",
+      "lastPrice": null,
+      "lastCheck": null,
+      "broker": "NSH",
+      "acntid": "61994",
+      "clientAcc": "202101051789279 ( Subash Adhikari-461002/1233)"
+    },
+    {
+      "id": "DYNAMIC44",
+      "accountId": "DYNAMIC44",
+      "url": "https://tms.dynamic44.com/atsweb",
+      "scriptId": "tms",
+      "name": "DYNAMIC44",
+      "domain": "dynamic44.com",
+      "enabled": true,
+      "role": "price",
+      "type": "ats",
+      "status": "idle",
+      "lastPrice": null,
+      "lastCheck": null,
+      "broker": "NSH",
+      "acntid": "40177",
+      "clientAcc": "202103102056673 ( TIKARAM DAHAL-)"
+    }
+  ],
+  "priceCheckScript": "// Auto-generated Price Check Script\n// Gets scrip ID from localStorage.__securities__\n\nconst COMPANIES = {\n    'NLO': { enabled: true, target: 269.4 }\n};\n\nfunction getCookie(name) {\n    var nameEQ = name + \"=\";\n    var ca = document.cookie.split(';');\n    for (var i = 0; i < ca.length; i++) {\n        var c = ca[i];\n        while (c.charAt(0) == ' ') c = c.substring(1, c.length);\n        if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);\n    }\n    return null;\n}\n\nasync function checkPrices() {\n    var host = document.location.origin;\n\n    // Get scrip list from localStorage (same as your original code)\n    var totalScripList = JSON.parse(localStorage.getItem(\"__securities__\")).data;\n\n    for (const [symbol, config] of Object.entries(COMPANIES)) {\n        if (!config.enabled) continue;\n\n        // Find scrip by symbol to get its ID and ISIN\n        var scrip = totalScripList.find(s => s.symbol === symbol);\n        if (!scrip) {\n            console.warn('Scrip not found:', symbol);\n            continue;\n        }\n\n        try {\n            // Use scrip.id and scrip.isin from localStorage\n            var url = host + \"/tmsapi/rtApi/stock/validation/ohlc/\" + scrip.id + \"/\" + scrip.isin;\n\n            var res = await fetch(url, {\n                credentials: \"include\",\n                headers: {\n                    \"accept\": \"application/json, text/plain, */*\",\n                    \"x-xsrf-token\": getCookie(\"XSRF-TOKEN\") || \"\"\n                }\n            });\n\n            var data = await res.json();\n\n            if (data.status === \"200\" && data.data && data.data.ltp) {\n                var ltp = parseFloat(data.data.ltp);\n                console.log(symbol + ': ' + ltp + ' (target: ' + config.target + ') [id:' + scrip.id + ']');\n\n                if (ltp <= config.target) {\n                    return JSON.stringify({\n                        company: symbol,\n                        price: ltp,\n                        target: config.target,\n                        scripId: scrip.id,\n                        matched: true\n                    });\n                }\n            }\n        } catch (e) {\n            console.error('Error checking ' + symbol + ':', e);\n        }\n    }\n\n    // Return first company's info if no match\n    var firstSymbol = Object.keys(COMPANIES)[0];\n    var firstScrip = totalScripList.find(s => s.symbol === firstSymbol);\n    return JSON.stringify({\n        company: firstSymbol,\n        price: 0,\n        scripId: firstScrip ? firstScrip.id : null,\n        matched: false\n    });\n}\n\nreturn await checkPrices();",
+  "orderScript": "",
+  "priceTarget": null,
+  "priceCondition": "lte",
+  "orderQuantities": {
+    "tms13": {
+      "NLO": {
+        "ORDER_QTY": 50,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 254.1,
+        "COLLATERAL": 0
+      }
+    },
+    "tms17": {
+      "NLO": {
+        "ORDER_QTY": 50,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 254.1,
+        "COLLATERAL": 0
+      },
+      "SYPNL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 684.8,
+        "COLLATERAL": 500000
+      },
+      "SWASTIK": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 2327,
+        "COLLATERAL": 500000
+      }
+    },
+    "tms18": {
+      "NLO": {
+        "ORDER_QTY": 100,
+        "MAX_ORDER_QTY": 2000,
+        "ORDER_PRICE": 254.1,
+        "BELOW_PRICE": 240,
+        "COLLATERAL": 0
+      },
+      "SYPNL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 684.8,
+        "COLLATERAL": 1000000
+      },
+      "SWASTIK": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 2327,
+        "COLLATERAL": 1000
+      }
+    },
+    "tms32": {
+      "NLO": {
+        "ORDER_QTY": 100,
+        "MAX_ORDER_QTY": 2000,
+        "ORDER_PRICE": 254.1,
+        "COLLATERAL": 0
+      },
+      "JHAPA": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 1073.6,
+        "COLLATERAL": 500000
+      },
+      "SYPNL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 684.8,
+        "COLLATERAL": 500000
+      },
+      "SWASTIK": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 2327,
+        "COLLATERAL": 500000
+      },
+      "SAIL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 781.7,
+        "COLLATERAL": 500000
+      }
+    },
+    "tms34": {
+      "NLO": {
+        "ORDER_QTY": 100,
+        "MAX_ORDER_QTY": 2000,
+        "ORDER_PRICE": 254.1,
+        "COLLATERAL": 0
+      },
+      "JHAPA": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 1073.6,
+        "COLLATERAL": 500000
+      },
+      "SYPNL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 684.8,
+        "COLLATERAL": 500000
+      },
+      "SWASTIK": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 2327,
+        "COLLATERAL": 500000
+      },
+      "SAIL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 781.7,
+        "COLLATERAL": 600000
+      }
+    },
+    "tms35": {
+      "NLO": {
+        "ORDER_QTY": 50,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 254.1,
+        "COLLATERAL": 0
+      },
+      "JHAPA": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 1073.6,
+        "COLLATERAL": 500000
+      },
+      "SYPNL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 684.8,
+        "COLLATERAL": 500000
+      },
+      "SWASTIK": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 2327,
+        "COLLATERAL": 500000
+      },
+      "SAIL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 781.7,
+        "COLLATERAL": 500000
+      }
+    },
+    "tms41": {
+      "NLO": {
+        "ORDER_QTY": 100,
+        "MAX_ORDER_QTY": 2000,
+        "ORDER_PRICE": 254.1,
+        "COLLATERAL": 0
+      },
+      "JHAPA": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 1073.6,
+        "COLLATERAL": 500000
+      },
+      "SYPNL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 684.8,
+        "COLLATERAL": 500000
+      },
+      "SWASTIK": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 2327,
+        "COLLATERAL": 500000
+      },
+      "SAIL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 781.7,
+        "COLLATERAL": 500000
+      }
+    },
+    "tms45": {
+      "NLO": {
+        "ORDER_QTY": 100,
+        "MAX_ORDER_QTY": 2000,
+        "ORDER_PRICE": 254.1,
+        "COLLATERAL": 0
+      },
+      "SYPNL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 684.8,
+        "COLLATERAL": 1500000
+      },
+      "SWASTIK": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 2327,
+        "COLLATERAL": 1000
+      }
+    },
+    "tms55": {
+      "NLO": {
+        "ORDER_QTY": 100,
+        "MAX_ORDER_QTY": 2000,
+        "ORDER_PRICE": 254.1,
+        "COLLATERAL": 0
+      },
+      "JHAPA": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 1073.6,
+        "COLLATERAL": 500000
+      },
+      "SYPNL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 684.8,
+        "COLLATERAL": 500000
+      },
+      "SWASTIK": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 2327,
+        "COLLATERAL": 500000
+      },
+      "SAIL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 781.7,
+        "COLLATERAL": 500000
+      }
+    },
+    "tms57": {
+      "NLO": {
+        "ORDER_QTY": 100,
+        "MAX_ORDER_QTY": 1500,
+        "ORDER_PRICE": 254.1,
+        "COLLATERAL": 0
+      },
+      "SYPNL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 684.8,
+        "COLLATERAL": 1500000
+      },
+      "SWASTIK": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 2327,
+        "COLLATERAL": 1000
+      }
+    },
+    "tms59": {
+      "NLO": {
+        "ORDER_QTY": 100,
+        "MAX_ORDER_QTY": 1500,
+        "ORDER_PRICE": 254.1,
+        "COLLATERAL": 0
+      },
+      "JHAPA": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 1073.6,
+        "COLLATERAL": 500000
+      },
+      "SYPNL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 684.8,
+        "COLLATERAL": 500000
+      },
+      "SWASTIK": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 2327,
+        "COLLATERAL": 800000
+      },
+      "SAIL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 781.7,
+        "COLLATERAL": 500000
+      }
+    },
+    "tms61": {
+      "NLO": {
+        "ORDER_QTY": 100,
+        "MAX_ORDER_QTY": 2000,
+        "ORDER_PRICE": 254.1,
+        "COLLATERAL": 0
+      },
+      "JHAPA": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 1073.6,
+        "COLLATERAL": 500000
+      },
+      "SYPNL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 684.8,
+        "COLLATERAL": 500000
+      },
+      "SWASTIK": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 2327,
+        "COLLATERAL": 500000
+      },
+      "SAIL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 781.7,
+        "COLLATERAL": 500000
+      }
+    },
+    "tms63": {
+      "NLO": {
+        "ORDER_QTY": 100,
+        "MAX_ORDER_QTY": 2000,
+        "ORDER_PRICE": 254.1,
+        "COLLATERAL": 0
+      },
+      "JHAPA": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 1073.6,
+        "COLLATERAL": 500000
+      },
+      "SYPNL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 684.8,
+        "COLLATERAL": 500000
+      },
+      "SWASTIK": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 2327,
+        "COLLATERAL": 500000
+      },
+      "SAIL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 781.7,
+        "COLLATERAL": 500000
+      }
+    },
+    "tms64": {
+      "NLO": {
+        "ORDER_QTY": 100,
+        "MAX_ORDER_QTY": 2000,
+        "ORDER_PRICE": 254.1,
+        "COLLATERAL": 0
+      },
+      "JHAPA": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 1073.6,
+        "COLLATERAL": 500000
+      },
+      "SYPNL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 684.8,
+        "COLLATERAL": 500000
+      },
+      "SWASTIK": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 2327,
+        "COLLATERAL": 500000
+      },
+      "SAIL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 781.7,
+        "COLLATERAL": 500000
+      }
+    },
+    "tms74": {
+      "NLO": {
+        "ORDER_QTY": 100,
+        "MAX_ORDER_QTY": 2000,
+        "ORDER_PRICE": 254.1,
+        "COLLATERAL": 0
+      },
+      "JHAPA": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 1073.6,
+        "COLLATERAL": 500000
+      },
+      "SYPNL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 684.8,
+        "COLLATERAL": 500000
+      },
+      "SWASTIK": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 2327,
+        "COLLATERAL": 500000
+      },
+      "SAIL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 781.7,
+        "COLLATERAL": 500000
+      }
+    },
+    "tms77": {
+      "NLO": {
+        "ORDER_QTY": 50,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 254.1,
+        "COLLATERAL": 0
+      },
+      "JHAPA": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 1073.6,
+        "COLLATERAL": 500000
+      },
+      "SYPNL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 684.8,
+        "COLLATERAL": 500000
+      },
+      "SWASTIK": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 2327,
+        "COLLATERAL": 500000
+      },
+      "SAIL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 781.7,
+        "COLLATERAL": 500000
+      }
+    },
+    "tms87": {
+      "NLO": {
+        "ORDER_QTY": 50,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 254.1,
+        "COLLATERAL": 0
+      },
+      "JHAPA": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 1073.6,
+        "COLLATERAL": 500000
+      },
+      "SYPNL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 684.8,
+        "COLLATERAL": 500000
+      },
+      "SWASTIK": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 2327,
+        "COLLATERAL": 500000
+      },
+      "SAIL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 781.7,
+        "COLLATERAL": 500000
+      }
+    },
+    "BHAGWOTI": {
+      "SABBL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 330,
+        "BELOW_PRICE": 0,
+        "COLLATERAL": 0
+      },
+      "RSML": {
+        "ORDER_QTY": 50,
+        "MAX_ORDER_QTY": 2500,
+        "ORDER_PRICE": 330,
+        "BELOW_PRICE": 0,
+        "COLLATERAL": 0
+      },
+      "NLO": {
+        "ORDER_QTY": 100,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 254.1,
+        "BELOW_PRICE": 0,
+        "COLLATERAL": 0
+      }
+    },
+    "SUBASH": {
+      "SABBL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 330,
+        "BELOW_PRICE": 0,
+        "COLLATERAL": 0
+      },
+      "RSML": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 330,
+        "BELOW_PRICE": 0,
+        "COLLATERAL": 0
+      }
+    },
+    "SUBASH64": {
+      "RSML": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 300,
+        "BELOW_PRICE": 0,
+        "COLLATERAL": 0
+      },
+      "SABBL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 300,
+        "BELOW_PRICE": 0,
+        "COLLATERAL": 0
+      },
+      "NLO": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 254.1,
+        "BELOW_PRICE": 0,
+        "COLLATERAL": 0
+      }
+    },
+    "SUBASH36": {
+      "RSML": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 400,
+        "ORDER_PRICE": 781.7,
+        "BELOW_PRICE": 0,
+        "COLLATERAL": 0
+      },
+      "SABBL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 200,
+        "ORDER_PRICE": 887.3,
+        "BELOW_PRICE": 0,
+        "COLLATERAL": 0
+      },
+      "NLO": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 254.1,
+        "BELOW_PRICE": 0,
+        "COLLATERAL": 0
+      }
+    },
+    "DYNAMIC44": {
+      "RSML": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 400,
+        "ORDER_PRICE": 330,
+        "BELOW_PRICE": 0,
+        "COLLATERAL": 0
+      },
+      "SABBL": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 200,
+        "ORDER_PRICE": 330,
+        "BELOW_PRICE": 0,
+        "COLLATERAL": 0
+      },
+      "NLO": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 254.1,
+        "BELOW_PRICE": 0,
+        "COLLATERAL": 0
+      }
+    }
+  },
+  "preOrders": {
+    "SAIL": {
+      "PRICE": 781.7,
+      "QTY": 10
+    }
+  },
+  "atsConfig": {
+    "tms": {
+      "broker": "NSH",
+      "acntid": "40177",
+      "clientAcc": "202103102056673 ( TIKARAM DAHAL-)"
+    }
+  }
+}

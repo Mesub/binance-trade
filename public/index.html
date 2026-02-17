@@ -24,26 +24,7 @@
         <div class="config-section">
           <h3>Companies to Monitor</h3>
           <div class="companies-config" id="companiesConfig">
-            <div class="company-row">
-              <label><input type="checkbox" id="chk_NLO" checked> NLO</label>
-              <input type="number" id="price_NLO" value="254.1" step="0.1" placeholder="Target Price">
-            </div>
-            <div class="company-row">
-              <label><input type="checkbox" id="chk_SYPNL" checked> SYPNL</label>
-              <input type="number" id="price_SYPNL" value="684.8" step="0.1" placeholder="Target Price">
-            </div>
-            <div class="company-row">
-              <label><input type="checkbox" id="chk_JHAPA"> JHAPA</label>
-              <input type="number" id="price_JHAPA" value="1073.6" step="0.1" placeholder="Target Price">
-            </div>
-            <div class="company-row">
-              <label><input type="checkbox" id="chk_SWASTIK"> SWASTIK</label>
-              <input type="number" id="price_SWASTIK" value="2327.0" step="0.1" placeholder="Target Price">
-            </div>
-            <div class="company-row">
-              <label><input type="checkbox" id="chk_SAIL"> SAIL</label>
-              <input type="number" id="price_SAIL" value="781.7" step="0.1" placeholder="Target Price">
-            </div>
+            <!-- Companies loaded dynamically from config/companies.js -->
           </div>
           <button onclick="app.saveCompanyConfig()" class="btn btn-primary">Save Company Config</button>
         </div>
@@ -67,14 +48,15 @@
         </div>
 
         <div class="controls">
-          <button onclick="app.startMonitoring()" id="startBtn" class="btn btn-success btn-large">Start Monitoring</button>
-          <button onclick="app.stopMonitoring()" id="stopBtn" class="btn btn-danger btn-large" disabled>Stop Monitoring</button>
+          <button onclick="app.openTMS()" id="openTmsBtn" class="btn btn-primary btn-large">1. Open TMS</button>
+          <button onclick="app.startMonitoring()" id="startBtn" class="btn btn-success btn-large" disabled>2. Start</button>
+          <button onclick="app.stopMonitoring()" id="stopBtn" class="btn btn-danger btn-large" disabled>Stop</button>
         </div>
       </section>
 
-      <!-- Subdomains Panel -->
+      <!-- Accounts Panel -->
       <section class="panel subdomains-panel">
-        <h2>Subdomains Configuration</h2>
+        <h2>Accounts Configuration</h2>
 
         <div class="order-summary-bar">
           <span class="order-summary-label">Order Config:</span>
@@ -88,39 +70,41 @@
         </div>
 
         <div class="add-subdomain">
-          <input type="text" id="subdomainUrl" placeholder="URL (e.g., https://tms13.nepsetms.com.np)">
-          <input type="text" id="subdomainName" placeholder="Name (e.g., TMS 13)">
+          <input type="text" id="subdomainTms" placeholder="TMS (e.g., tms13)">
+          <select id="subdomainDomain">
+            <option value="nepsetms.com.np">nepsetms.com.np</option>
+            <option value="__custom__">Custom...</option>
+          </select>
+          <input type="text" id="subdomainDomainCustom" placeholder="Custom domain" style="display:none;">
+          <input type="text" id="subdomainName" placeholder="Name (e.g., TMS13)">
           <select id="subdomainRole">
             <option value="both">Both (Price + Order)</option>
             <option value="price">Price Check Only</option>
             <option value="order">Order Place Only</option>
           </select>
-          <select id="subdomainType">
+          <select id="subdomainType" onchange="app.toggleAtsFields()">
             <option value="nepse">NEPSE TMS</option>
             <option value="ats">ATS</option>
           </select>
+          <div id="atsInlineFields" style="display:none;">
+            <input type="text" id="subdomainBroker" placeholder="Broker (e.g., NSH)">
+            <input type="text" id="subdomainAcntid" placeholder="Account ID">
+            <input type="text" id="subdomainClientAcc" placeholder="Client Account">
+          </div>
           <button onclick="app.addSubdomain()" class="btn btn-primary">Add</button>
         </div>
 
         <div class="bulk-actions">
           <button onclick="app.syncSubdomains()" class="btn btn-primary btn-small">Sync from Order Config</button>
-          <button onclick="app.setAllRole('price')" class="btn btn-secondary btn-small">All → Price Check</button>
-          <button onclick="app.setAllRole('order')" class="btn btn-secondary btn-small">All → Order Place</button>
-          <button onclick="app.setAllRole('both')" class="btn btn-secondary btn-small">All → Both</button>
+          <button onclick="app.checkAll('price', true)" class="btn btn-secondary btn-small">&#9745; All P</button>
+          <button onclick="app.checkAll('price', false)" class="btn btn-secondary btn-small">&#9744; All P</button>
+          <button onclick="app.checkAll('order', true)" class="btn btn-secondary btn-small">&#9745; All O</button>
+          <button onclick="app.checkAll('order', false)" class="btn btn-secondary btn-small">&#9744; All O</button>
         </div>
 
         <div id="subdomainsList" class="subdomains-list">
-          <!-- Subdomains will be dynamically loaded here -->
+          <!-- Accounts will be dynamically loaded here -->
         </div>
-      </section>
-
-      <!-- ATS Config Panel (shown only when ATS subdomains exist) -->
-      <section class="panel ats-panel" id="atsPanel" style="display:none;">
-        <h2>ATS Broker Config</h2>
-        <div id="atsConfigList" class="ats-config-list">
-          <!-- ATS config fields will be dynamically loaded here -->
-        </div>
-        <button onclick="app.saveAtsConfig()" class="btn btn-primary" style="margin-top:10px;">Save ATS Config</button>
       </section>
 
       <!-- Logs Panel -->
@@ -129,6 +113,7 @@
         <div class="logs-header">
           <span id="priceCheckCount">Price Check: 0</span>
           <span id="orderPlaceCount">Order Place: 0</span>
+          <span id="cycleTime">Cycle: -</span>
           <button onclick="app.clearLogs()" class="btn btn-secondary btn-small">Clear Logs</button>
         </div>
         <div id="logsList" class="logs-list">

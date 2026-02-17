@@ -3,15 +3,11 @@ class PriceMonitorApp {
     this.ws = null;
     this.subdomains = [];
     this.isMonitoring = false;
-    this.companyConfig = {
-      NLO: { enabled: true, targetPrice: 254.1 },
-      SYPNL: { enabled: true, targetPrice: 684.8 },
-      JHAPA: { enabled: false, targetPrice: 1073.6 },
-      SWASTIK: { enabled: false, targetPrice: 2327.0 },
-      SAIL: { enabled: false, targetPrice: 781.7 }
-    };
+    this.companyConfig = {};
     this.priceCheckCount = 0;
     this.orderPlaceCount = 0;
+    this.browserOpen = false;
+    this.lastCycleTimeMs = 0;
     this.init();
   }
 
@@ -19,6 +15,7 @@ class PriceMonitorApp {
     this.connectWebSocket();
     this.loadInitialData();
     this.loadCompanyConfig();
+    this.loadAccounts();
   }
 
   connectWebSocket() {
@@ -64,6 +61,10 @@ class PriceMonitorApp {
       case 'orders_complete':
         this.handleOrdersComplete(data.data);
         break;
+      case 'browser_opened':
+        this.browserOpen = true;
+        this.updateButtonStates();
+        break;
       case 'price_check':
         this.priceCheckCount++;
         this.updateCounts();
@@ -72,12 +73,20 @@ class PriceMonitorApp {
         this.orderPlaceCount++;
         this.updateCounts();
         break;
+      case 'cycle_time':
+        this.lastCycleTimeMs = data.data.timeMs;
+        this.updateCounts();
+        break;
     }
   }
 
   updateCounts() {
     document.getElementById('priceCheckCount').textContent = `Price Check: ${this.priceCheckCount}`;
     document.getElementById('orderPlaceCount').textContent = `Order Place: ${this.orderPlaceCount}`;
+    const cycleEl = document.getElementById('cycleTime');
+    if (cycleEl && this.lastCycleTimeMs > 0) {
+      cycleEl.textContent = `Cycle: ${this.lastCycleTimeMs}ms`;
+    }
   }
 
   async loadInitialData() {
@@ -92,6 +101,7 @@ class PriceMonitorApp {
 
       const statusRes = await fetch('/api/monitor/status');
       const status = await statusRes.json();
+      this.browserOpen = status.browserOpen || false;
       this.updateStatus(status.isMonitoring);
 
       const logsRes = await fetch('/api/logs');
@@ -104,25 +114,80 @@ class PriceMonitorApp {
     }
   }
 
-  loadCompanyConfig() {
+  async loadCompanyConfig() {
+    try {
+      // Load companies from central config (config/companies.js) via API
+      const res = await fetch('/api/companies');
+      const companies = await res.json();
+      // Convert to frontend format: { SYMBOL: { enabled, targetPrice } }
+      this.companyConfig = {};
+      for (const [symbol, config] of Object.entries(companies)) {
+        this.companyConfig[symbol] = {
+          enabled: config.enabled,
+          targetPrice: config.targetPrice
+        };
+      }
+    } catch (error) {
+      console.error('Error loading companies from server:', error);
+    }
+
+    // Override with localStorage if user has saved custom settings
     const saved = localStorage.getItem('companyConfig');
     if (saved) {
-      this.companyConfig = JSON.parse(saved);
+      const savedConfig = JSON.parse(saved);
+      for (const [symbol, config] of Object.entries(savedConfig)) {
+        if (this.companyConfig[symbol]) {
+          this.companyConfig[symbol] = config;
+        }
+      }
     }
+
     this.renderCompanyConfig();
   }
 
-  renderCompanyConfig() {
-    Object.entries(this.companyConfig).forEach(([company, config]) => {
-      const checkbox = document.getElementById(`chk_${company}`);
-      const priceInput = document.getElementById(`price_${company}`);
-      if (checkbox) checkbox.checked = config.enabled;
-      if (priceInput) priceInput.value = config.targetPrice;
+  async loadAccounts() {
+    try {
+      const res = await fetch('/api/accounts');
+      this.accounts = await res.json();
+      this.populateDomainOptions();
+    } catch (error) {
+      console.error('Error loading accounts:', error);
+      this.accounts = [];
+    }
+  }
+
+  populateDomainOptions() {
+    // Extract unique domains from accounts
+    const domains = [...new Set((this.accounts || []).map(a => a.domain))];
+    const domainSelect = document.getElementById('subdomainDomain');
+    if (!domainSelect || domains.length === 0) return;
+
+    domainSelect.innerHTML = domains.map(d => `<option value="${d}">${d}</option>`).join('');
+    // Add "other" option for custom domains
+    domainSelect.innerHTML += '<option value="__custom__">Custom...</option>';
+
+    domainSelect.addEventListener('change', () => {
+      const customInput = document.getElementById('subdomainDomainCustom');
+      if (customInput) {
+        customInput.style.display = domainSelect.value === '__custom__' ? '' : 'none';
+      }
     });
   }
 
+  renderCompanyConfig() {
+    const container = document.getElementById('companiesConfig');
+    if (!container) return;
+
+    container.innerHTML = Object.entries(this.companyConfig).map(([company, config]) => `
+      <div class="company-row">
+        <label><input type="checkbox" id="chk_${company}" ${config.enabled ? 'checked' : ''}> ${company}</label>
+        <input type="number" id="price_${company}" value="${config.targetPrice}" step="0.1" placeholder="Target Price">
+      </div>
+    `).join('');
+  }
+
   saveCompanyConfig() {
-    const companies = ['NLO', 'SYPNL', 'JHAPA', 'SWASTIK', 'SAIL'];
+    const companies = Object.keys(this.companyConfig);
     companies.forEach(company => {
       const checkbox = document.getElementById(`chk_${company}`);
       const priceInput = document.getElementById(`price_${company}`);
@@ -144,44 +209,67 @@ class PriceMonitorApp {
   }
 
   async addSubdomain() {
-    const url = document.getElementById('subdomainUrl').value.trim();
+    const tms = document.getElementById('subdomainTms').value.trim();
     const name = document.getElementById('subdomainName').value.trim();
     const role = document.getElementById('subdomainRole').value;
     const type = document.getElementById('subdomainType').value;
 
-    if (!url || !name) {
-      alert('Please enter both URL and name');
+    // Get domain from select or custom input
+    const domainSelect = document.getElementById('subdomainDomain');
+    const customDomainInput = document.getElementById('subdomainDomainCustom');
+    let domain = domainSelect.value;
+    if (domain === '__custom__' && customDomainInput) {
+      domain = customDomainInput.value.trim();
+    }
+
+    if (!tms || !name || !domain) {
+      alert('Please enter TMS subdomain, name, and domain');
       return;
     }
 
-    // Auto-extract subdomain from URL (e.g., tms13 from https://tms13.nepsetms.com.np)
-    let scriptId = '';
-    try {
-      const hostname = new URL(url).hostname;
-      const parts = hostname.split('.');
-      if (parts.length > 2) {
-        scriptId = parts[0]; // e.g., "tms13"
-      }
-    } catch (e) {
-      scriptId = name.toLowerCase().replace(/\s+/g, '');
+    const url = `https://${tms}.${domain}/`;
+    const scriptId = tms;
+    const accountId = name;
+
+    // Collect ATS fields if type is 'ats'
+    const broker = document.getElementById('subdomainBroker')?.value.trim() || '';
+    const acntid = document.getElementById('subdomainAcntid')?.value.trim() || '';
+    const clientAcc = document.getElementById('subdomainClientAcc')?.value.trim() || '';
+
+    const body = { url, name, scriptId, accountId, domain, role, type, enabled: true };
+    if (type === 'ats') {
+      body.broker = broker;
+      body.acntid = acntid;
+      body.clientAcc = clientAcc;
     }
 
     try {
       const res = await fetch('/api/subdomains', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, name, scriptId, role, type, enabled: true })
+        body: JSON.stringify(body)
       });
 
       const result = await res.json();
       if (result.success) {
-        document.getElementById('subdomainUrl').value = '';
+        document.getElementById('subdomainTms').value = '';
         document.getElementById('subdomainName').value = '';
-        this.addLog(`Added subdomain: ${name} (${role}, ${type})`, 'success');
+        if (document.getElementById('subdomainBroker')) document.getElementById('subdomainBroker').value = '';
+        if (document.getElementById('subdomainAcntid')) document.getElementById('subdomainAcntid').value = '';
+        if (document.getElementById('subdomainClientAcc')) document.getElementById('subdomainClientAcc').value = '';
+        this.addLog(`Added account: ${name} (${tms}.${domain}, ${role}, ${type})`, 'success');
       }
     } catch (error) {
       console.error('Error adding subdomain:', error);
       this.addLog('Error adding subdomain', 'error');
+    }
+  }
+
+  toggleAtsFields() {
+    const type = document.getElementById('subdomainType').value;
+    const atsFields = document.getElementById('atsInlineFields');
+    if (atsFields) {
+      atsFields.style.display = type === 'ats' ? '' : 'none';
     }
   }
 
@@ -225,11 +313,32 @@ class PriceMonitorApp {
     }
   }
 
-  async setAllRole(role) {
+  async toggleSubdomainRole(id, aspect, checked) {
+    const subdomain = this.subdomains.find(s => s.id === id);
+    if (!subdomain) return;
+
+    const currentRole = subdomain.role || 'both';
+    let hasPrice = currentRole === 'price' || currentRole === 'both';
+    let hasOrder = currentRole === 'order' || currentRole === 'both';
+
+    if (aspect === 'price') hasPrice = checked;
+    if (aspect === 'order') hasOrder = checked;
+
+    let newRole;
+    if (hasPrice && hasOrder) newRole = 'both';
+    else if (hasPrice) newRole = 'price';
+    else if (hasOrder) newRole = 'order';
+    else newRole = 'none';
+
+    await this.updateSubdomainRole(id, newRole);
+  }
+
+  async checkAll(aspect, checked) {
     for (const subdomain of this.subdomains) {
-      await this.updateSubdomainRole(subdomain.id, role);
+      await this.toggleSubdomainRole(subdomain.id, aspect, checked);
     }
-    this.addLog(`Set all subdomains to: ${role}`, 'success');
+    const label = aspect === 'price' ? 'Price' : 'Order';
+    this.addLog(`${checked ? 'Checked' : 'Unchecked'} all ${label}`, 'success');
   }
 
   renderOrderSummary() {
@@ -281,35 +390,70 @@ class PriceMonitorApp {
         error: '⚠️'
       }[subdomain.status] || '';
 
-      const priceText = subdomain.lastPrice !== null ? `${subdomain.lastPrice}` : '-';
       const lastCheckText = subdomain.lastCheck ? new Date(subdomain.lastCheck).toLocaleTimeString() : '-';
       const companyText = subdomain.matchedCompany ? `[${subdomain.matchedCompany}]` : '';
       const typeBadge = `<span class="type-badge ${type}">${type}</span>`;
+      const domainText = subdomain.domain ? `<span class="domain-badge">${subdomain.domain}</span>` : '';
+
+      // Price display
+      const hasPrice = subdomain.lastPrice !== null && subdomain.lastPrice !== undefined;
+      const priceText = hasPrice ? subdomain.lastPrice : '-';
+
+      // Target price from server
+      const targetText = subdomain.targetPrice ? subdomain.targetPrice : '-';
+
+      // Price vs target comparison
+      let priceClass = '';
+      if (hasPrice && subdomain.targetPrice) {
+        priceClass = subdomain.lastPrice <= subdomain.targetPrice ? 'price-match' : 'price-above';
+      }
+
+      // Timing
+      const fetchMs = subdomain.fetchTimeMs != null ? `${subdomain.fetchTimeMs}ms` : '-';
+
+      // Order time badge (only show after order)
+      const orderTimeBadge = subdomain.orderTimeMs != null
+        ? `<span class="timing-badge order-time">Order: ${subdomain.orderTimeMs}ms</span>` : '';
+
+      // ATS info (shown inline when type is 'ats')
+      const atsInfo = type === 'ats' && subdomain.broker
+        ? `<div class="ats-info-row">ATS: ${subdomain.broker} / ${subdomain.acntid || '-'}</div>` : '';
 
       return `
         <div class="subdomain-item ${roleClass} ${statusClass} ${subdomain.enabled ? '' : 'disabled'}">
           <div class="subdomain-role-indicator ${role}"></div>
           <div class="subdomain-info">
-            <div class="subdomain-name">${statusEmoji} ${subdomain.name} ${companyText} ${typeBadge}</div>
-            <div class="subdomain-url">${subdomain.url}</div>
-            <div class="subdomain-meta">
-              Price: ${priceText} | Last: ${lastCheckText}
+            <div class="subdomain-name">${statusEmoji} ${subdomain.name} ${companyText} ${typeBadge} ${domainText}</div>
+            ${atsInfo}
+            <div class="subdomain-price-row">
+              <span class="price-label">LTP:</span>
+              <span class="price-value ${priceClass}">${priceText}</span>
+              <span class="price-separator">|</span>
+              <span class="price-label">Target:</span>
+              <span class="target-value">${targetText}</span>
+            </div>
+            <div class="subdomain-timing-row">
+              <span class="timing-badge fetch-time">Fetch: ${fetchMs}</span>
+              ${orderTimeBadge}
+              <span class="timing-badge last-check">Last: ${lastCheckText}</span>
             </div>
           </div>
-          <select class="subdomain-role-select" onchange="app.updateSubdomainRole('${subdomain.id}', this.value)">
-            <option value="both" ${role === 'both' ? 'selected' : ''}>Both</option>
-            <option value="price" ${role === 'price' ? 'selected' : ''}>Price Only</option>
-            <option value="order" ${role === 'order' ? 'selected' : ''}>Order Only</option>
-          </select>
+          <div class="subdomain-role-checkboxes">
+            <label class="role-checkbox price-cb" title="Price Check">
+              <input type="checkbox" ${role === 'price' || role === 'both' ? 'checked' : ''}
+                onchange="app.toggleSubdomainRole('${subdomain.id}', 'price', this.checked)"> P
+            </label>
+            <label class="role-checkbox order-cb" title="Order Place">
+              <input type="checkbox" ${role === 'order' || role === 'both' ? 'checked' : ''}
+                onchange="app.toggleSubdomainRole('${subdomain.id}', 'order', this.checked)"> O
+            </label>
+          </div>
           <div class="subdomain-actions">
             <button class="btn btn-danger btn-small" onclick="app.removeSubdomain('${subdomain.id}')">X</button>
           </div>
         </div>
       `;
     }).join('');
-
-    // Show/hide ATS config panel based on whether ATS subdomains exist
-    this.updateAtsPanel();
   }
 
   loadDefaultPriceScript() {
@@ -356,6 +500,10 @@ async function checkPrices() {
     // Get scrip list from localStorage (same as your original code)
     var totalScripList = JSON.parse(localStorage.getItem("__securities__")).data;
 
+    // Track last fetched price so we always return a real LTP
+    var lastSymbol = null;
+    var lastLtp = 0;
+
     for (const [symbol, config] of Object.entries(COMPANIES)) {
         if (!config.enabled) continue;
 
@@ -382,6 +530,8 @@ async function checkPrices() {
 
             if (data.status === "200" && data.data && data.data.ltp) {
                 var ltp = parseFloat(data.data.ltp);
+                lastSymbol = symbol;
+                lastLtp = ltp;
                 console.log(symbol + ': ' + ltp + ' (target: ' + config.target + ') [id:' + scrip.id + ']');
 
                 if (ltp <= config.target) {
@@ -399,13 +549,11 @@ async function checkPrices() {
         }
     }
 
-    // Return first company's info if no match
-    var firstSymbol = Object.keys(COMPANIES)[0];
-    var firstScrip = totalScripList.find(s => s.symbol === firstSymbol);
+    // No match - return last fetched price so dashboard shows actual LTP
+    var reportSymbol = lastSymbol || Object.keys(COMPANIES)[0];
     return JSON.stringify({
-        company: firstSymbol,
-        price: 0,
-        scripId: firstScrip ? firstScrip.id : null,
+        company: reportSymbol,
+        price: lastLtp,
         matched: false
     });
 }
@@ -494,6 +642,35 @@ return { success: false, message: 'Order functions not loaded. Load your trading
     }
   }
 
+  async openTMS() {
+    // Save config first
+    this.saveCompanyConfig();
+
+    const openTmsBtn = document.getElementById('openTmsBtn');
+    openTmsBtn.disabled = true;
+    openTmsBtn.textContent = 'Opening...';
+
+    try {
+      const res = await fetch('/api/browser/open', { method: 'POST' });
+      const result = await res.json();
+
+      if (result.success) {
+        this.browserOpen = true;
+        this.updateButtonStates();
+        this.addLog('TMS pages opened - log in to all tabs, then click Start', 'success');
+      } else {
+        openTmsBtn.disabled = false;
+        openTmsBtn.textContent = '1. Open TMS';
+        this.addLog(`Error: ${result.error}`, 'error');
+        alert(result.error);
+      }
+    } catch (error) {
+      openTmsBtn.disabled = false;
+      openTmsBtn.textContent = '1. Open TMS';
+      this.addLog('Error opening TMS', 'error');
+    }
+  }
+
   async startMonitoring() {
     // Save config first
     this.saveCompanyConfig();
@@ -520,6 +697,7 @@ return { success: false, message: 'Order functions not loaded. Load your trading
   async stopMonitoring() {
     try {
       await fetch('/api/monitor/stop', { method: 'POST' });
+      this.browserOpen = false;
       this.updateStatus(false);
       this.addLog('Monitoring stopped', 'success');
     } catch (error) {
@@ -527,24 +705,43 @@ return { success: false, message: 'Order functions not loaded. Load your trading
     }
   }
 
+  updateButtonStates() {
+    const openTmsBtn = document.getElementById('openTmsBtn');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+
+    if (this.isMonitoring) {
+      openTmsBtn.disabled = true;
+      openTmsBtn.textContent = '1. Open TMS';
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+    } else if (this.browserOpen) {
+      openTmsBtn.disabled = true;
+      openTmsBtn.textContent = 'TMS Opened';
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+    } else {
+      openTmsBtn.disabled = false;
+      openTmsBtn.textContent = '1. Open TMS';
+      startBtn.disabled = true;
+      stopBtn.disabled = true;
+    }
+  }
+
   updateStatus(isMonitoring) {
     this.isMonitoring = isMonitoring;
     const indicator = document.getElementById('statusIndicator');
     const statusText = document.getElementById('statusText');
-    const startBtn = document.getElementById('startBtn');
-    const stopBtn = document.getElementById('stopBtn');
 
     if (isMonitoring) {
       indicator.className = 'status-indicator monitoring';
       statusText.textContent = 'Monitoring';
-      startBtn.disabled = true;
-      stopBtn.disabled = false;
     } else {
       indicator.className = 'status-indicator';
-      statusText.textContent = 'Idle';
-      startBtn.disabled = false;
-      stopBtn.disabled = true;
+      statusText.textContent = this.browserOpen ? 'Ready - Log in & Start' : 'Idle';
     }
+
+    this.updateButtonStates();
   }
 
   addLog(message, type = 'info', scroll = true) {
@@ -572,75 +769,6 @@ return { success: false, message: 'Order functions not loaded. Load your trading
     this.priceCheckCount = 0;
     this.orderPlaceCount = 0;
     this.updateCounts();
-  }
-
-  async updateAtsPanel() {
-    const atsSubdomains = this.subdomains.filter(s => s.type === 'ats');
-    const panel = document.getElementById('atsPanel');
-
-    if (atsSubdomains.length === 0) {
-      panel.style.display = 'none';
-      return;
-    }
-
-    panel.style.display = '';
-
-    // Load existing ATS config from server
-    try {
-      const res = await fetch('/api/ats-config');
-      this.atsConfig = await res.json();
-    } catch (e) {
-      this.atsConfig = {};
-    }
-
-    const container = document.getElementById('atsConfigList');
-    container.innerHTML = atsSubdomains.map(s => {
-      const cfg = this.atsConfig[s.scriptId] || {};
-      return `
-        <div class="ats-config-item" data-script-id="${s.scriptId}">
-          <h4>${s.name} (${s.scriptId})</h4>
-          <div class="ats-field">
-            <label>Broker:</label>
-            <input type="text" class="ats-broker" value="${cfg.broker || ''}" placeholder="e.g., NSH">
-          </div>
-          <div class="ats-field">
-            <label>Account ID:</label>
-            <input type="text" class="ats-acntid" value="${cfg.acntid || ''}" placeholder="e.g., 60152">
-          </div>
-          <div class="ats-field">
-            <label>Client Acc:</label>
-            <input type="text" class="ats-clientacc" value="${cfg.clientAcc || ''}" placeholder="Client account">
-          </div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  async saveAtsConfig() {
-    const items = document.querySelectorAll('.ats-config-item');
-    const atsConfig = {};
-
-    items.forEach(item => {
-      const scriptId = item.dataset.scriptId;
-      const broker = item.querySelector('.ats-broker').value.trim();
-      const acntid = item.querySelector('.ats-acntid').value.trim();
-      const clientAcc = item.querySelector('.ats-clientacc').value.trim();
-
-      if (broker || acntid || clientAcc) {
-        atsConfig[scriptId] = { broker, acntid, clientAcc };
-      }
-    });
-
-    try {
-      await fetch('/api/ats-config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ atsConfig })
-      });
-      this.addLog(`ATS config saved for ${Object.keys(atsConfig).length} brokers`, 'success');
-    } catch (error) {
-      this.addLog('Error saving ATS config', 'error');
-    }
   }
 
   handleOrdersComplete(results) {

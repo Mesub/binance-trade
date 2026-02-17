@@ -6,9 +6,9 @@ class OrderService {
   /**
    * Dispatch to the correct order method based on subdomain type.
    */
-  async placeOrder(subdomain, orderConfig, atsUserConfig = null) {
+  async placeOrder(subdomain, orderConfig) {
     if (subdomain.type === 'ats') {
-      return await this.placeAtsOrder(subdomain, orderConfig, atsUserConfig);
+      return await this.placeAtsOrder(subdomain, orderConfig);
     }
     return await this.placeNepseOrder(subdomain, orderConfig);
   }
@@ -19,7 +19,7 @@ class OrderService {
    * Continuously monitors LTP -> places orders at 2% increments -> until circuit.
    */
   async placeNepseOrder(subdomain, orderConfig) {
-    const page = await this.browserService.getPage(subdomain.url);
+    const page = await this.browserService.getPage(subdomain.accountId, subdomain.url);
 
     try {
       const result = await page.evaluate(async (config) => {
@@ -317,77 +317,209 @@ class OrderService {
 
   /**
    * Place order on ATS/New TMS (form-encoded).
+   * Monitors LTP via /atsweb/watch, places orders at 2% increments up to circuit (10%).
+   * ATS config (broker, acntid, clientAcc) comes from subdomain properties directly.
    */
-  async placeAtsOrder(subdomain, orderConfig, atsUserConfig) {
-    if (!atsUserConfig) {
-      throw new Error(`ATS config not found for ${subdomain.scriptId}`);
+  async placeAtsOrder(subdomain, orderConfig) {
+    const atsUserConfig = {
+      broker: subdomain.broker,
+      acntid: subdomain.acntid,
+      clientAcc: subdomain.clientAcc
+    };
+
+    if (!atsUserConfig.broker || !atsUserConfig.acntid || !atsUserConfig.clientAcc) {
+      throw new Error(`ATS config (broker/acntid/clientAcc) not found for ${subdomain.name}`);
     }
 
-    const page = await this.browserService.getPage(subdomain.url);
+    const page = await this.browserService.getPage(subdomain.accountId, subdomain.url);
 
     try {
       const result = await page.evaluate(async (config) => {
-        var securities = localStorage.getItem("__securities__");
-        if (!securities) {
-          return { success: false, message: 'Not logged in - __securities__ not found' };
+        var baseUrl = document.location.origin + '/atsweb';
+        var headers = {
+          'content-type': 'application/x-www-form-urlencoded',
+          'x-requested-with': 'XMLHttpRequest'
+        };
+        var referrer = baseUrl + '/home?action=showHome&format=html&reqid=' + Date.now();
+
+        // Round price to 1 decimal
+        function roundPrice(val) {
+          return parseFloat(val.toFixed(3).slice(0, -2));
         }
 
-        var totalScripList = JSON.parse(securities).data;
-        var scrip = totalScripList.find(function(s) { return s.symbol === config.symbol; });
-        if (!scrip) {
-          return { success: false, message: 'Scrip not found: ' + config.symbol };
-        }
-
-        var duplicateOrderId = 'ORD_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-
-        var params = new URLSearchParams();
-        params.append('broker', config.ats.broker);
-        params.append('acntid', config.ats.acntid);
-        params.append('clientAcc', config.ats.clientAcc);
-        params.append('securityId', scrip.id.toString());
-        params.append('symbol', config.symbol);
-        params.append('qty', config.ORDER_QTY.toString());
-        params.append('price', config.ORDER_PRICE.toString());
-        params.append('transType', 'B');
-        params.append('ordType', 'LMT');
-        params.append('duplicateOrderId', duplicateOrderId);
-
-        var host = document.location.origin;
-        var url = host + "/order";
-
-        try {
-          var res = await fetch(url, {
-            method: "POST",
-            credentials: "include",
-            headers: {
-              "content-type": "application/x-www-form-urlencoded",
-              "x-requested-with": "XMLHttpRequest"
-            },
-            body: params.toString()
-          });
-
-          var text = await res.text();
+        // Fetch current LTP via /atsweb/watch
+        async function fetchLTP(symbol) {
           try {
-            var data = JSON.parse(text);
-            return {
-              success: data.status === "200" || data.status === 200 || data.success === true,
-              symbol: config.symbol,
-              qty: config.ORDER_QTY,
-              price: config.ORDER_PRICE,
-              response: data
-            };
-          } catch (e) {
-            return { success: false, message: text.substring(0, 300), symbol: config.symbol };
-          }
-        } catch (e) {
-          return { success: false, message: 'Fetch error: ' + e.message, symbol: config.symbol };
+            var url = baseUrl + '/watch?action=getWatchForSecurity&format=json&securityid=' + symbol + '&exchange=NEPSE&bookDefId=1&dojo.preventCache=' + Date.now();
+            var res = await fetch(url, {
+              method: 'GET',
+              headers: { 'x-requested-with': 'XMLHttpRequest' },
+              referrer: referrer,
+              referrerPolicy: 'strict-origin-when-cross-origin',
+              credentials: 'include'
+            });
+            if (!res.ok) return null;
+            var text = await res.text();
+            var match = text.match(/['"]tradeprice['"]\s*:\s*['"]([^'"]+)['"]/);
+            if (match && match[1]) return parseFloat(match[1]);
+            return null;
+          } catch(e) { return null; }
         }
+
+        // Place order via /atsweb/order (form-encoded)
+        async function placeOrder(orderParams) {
+          var body = Object.keys(orderParams).map(function(k) {
+            return encodeURIComponent(k) + '=' + encodeURIComponent(orderParams[k]);
+          }).join('&');
+          try {
+            var res = await fetch(baseUrl + '/order', {
+              headers: headers,
+              referrer: referrer,
+              referrerPolicy: 'strict-origin-when-cross-origin',
+              body: body,
+              method: 'POST',
+              mode: 'cors',
+              credentials: 'include'
+            });
+            return await res.json();
+          } catch(e) { return null; }
+        }
+
+        // Build order form params
+        function buildOrderParams(symbol, price, qty) {
+          return {
+            action: 'submitOrder',
+            market: 'NEPSE',
+            broker: config.ats.broker,
+            format: 'json',
+            brokerClient: '1',
+            orderStatus: 'Open',
+            acntid: config.ats.acntid,
+            marketPrice: price.toString(),
+            duplicateOrderId: 'Order_' + symbol + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+            clientAcc: config.ats.clientAcc,
+            assetSelect: '1',
+            actionSelect: '1',
+            txtSecurity: symbol,
+            cmbTypeOfOrder: '1',
+            spnQuantity: qty.toString(),
+            spnPrice: price.toString(),
+            cmbTif: '16',
+            cmbTifDays: '1',
+            cmbBoard: '1',
+            hiddenSpnCseFee: '0.02',
+            brokerClientVal: '1',
+            product: 'web',
+            confirm: '1'
+          };
+        }
+
+        // === Get current market price ===
+        var currentPrice = await fetchLTP(config.symbol);
+        if (!currentPrice) {
+          return { success: false, message: 'Failed to get price for ' + config.symbol + ' - not logged in?' };
+        }
+
+        // === Calculate order levels ===
+        var circuitLimit = roundPrice(config.ORDER_PRICE * 1.10);
+        var levels = [];
+        var prevPrice = currentPrice;
+
+        // Incremental levels at 2% steps (2%, 4%, 6%, 8%)
+        for (var lvl = 2; lvl <= 8; lvl += 2) {
+          var targetPrice = roundPrice(prevPrice * 1.02);
+          if (targetPrice > circuitLimit) break;
+          levels.push({ level: lvl, price: targetPrice, qty: config.ORDER_QTY, isCircuit: false });
+          prevPrice = targetPrice;
+        }
+
+        // Circuit level (10% of ORDER_PRICE) with MAX_ORDER_QTY
+        if (circuitLimit >= prevPrice) {
+          levels.push({ level: 10, price: circuitLimit, qty: config.MAX_ORDER_QTY, isCircuit: true });
+        }
+
+        if (levels.length === 0) {
+          return { success: false, message: 'No order levels to place for ' + config.symbol };
+        }
+
+        console.log('[ATS] ' + config.symbol + ': ' + levels.length + ' levels, current=' + currentPrice + ', circuit=' + circuitLimit);
+
+        // === Place orders at levels with price monitoring ===
+        var ordersPlaced = [];
+        var currentLevelIndex = 0;
+
+        return new Promise(function(resolve) {
+          var startTime = Date.now();
+          var MAX_DURATION = 60 * 60 * 1000; // 1 hour safety
+
+          async function processLevel() {
+            // Safety timeout
+            if (Date.now() - startTime > MAX_DURATION) {
+              resolve({ success: ordersPlaced.length > 0, symbol: config.symbol, message: 'Timeout after 1 hour', ordersPlaced: ordersPlaced.length, prices: ordersPlaced });
+              return;
+            }
+
+            // All levels done
+            if (currentLevelIndex >= levels.length) {
+              var lastLevel = levels[levels.length - 1];
+              resolve({ success: ordersPlaced.length > 0, symbol: config.symbol, circuitReached: lastLevel.isCircuit, circuitPrice: lastLevel.isCircuit ? lastLevel.price : null, ordersPlaced: ordersPlaced.length, prices: ordersPlaced });
+              return;
+            }
+
+            var levelInfo = levels[currentLevelIndex];
+
+            if (currentLevelIndex === 0) {
+              // First level: place immediately with retries
+              var params = buildOrderParams(config.symbol, levelInfo.price, levelInfo.qty);
+              var response = await placeOrder(params);
+
+              if (response && response.description === 'javascriptOrderSuccessesFullySubmitted') {
+                ordersPlaced.push(levelInfo.price);
+                console.log('[ATS Order] ' + config.symbol + ' @ ' + levelInfo.price + ' qty=' + levelInfo.qty + ' => SUCCESS');
+                currentLevelIndex++;
+                setTimeout(processLevel, 100);
+              } else {
+                // Retry immediately
+                console.log('[ATS Order] ' + config.symbol + ' @ ' + levelInfo.price + ' => RETRY');
+                setTimeout(processLevel, 10);
+              }
+            } else {
+              // Subsequent levels: wait for price to reach target
+              var ltp = await fetchLTP(config.symbol);
+              if (!ltp) {
+                setTimeout(processLevel, 500);
+                return;
+              }
+
+              if (ltp >= levelInfo.price) {
+                var params = buildOrderParams(config.symbol, levelInfo.price, levelInfo.qty);
+                var response = await placeOrder(params);
+
+                if (response && response.description === 'javascriptOrderSuccessesFullySubmitted') {
+                  ordersPlaced.push(levelInfo.price);
+                  console.log('[ATS Order] ' + config.symbol + ' @ ' + levelInfo.price + ' qty=' + levelInfo.qty + ' => SUCCESS');
+                  currentLevelIndex++;
+                }
+                setTimeout(processLevel, 100);
+              } else {
+                // Price not reached yet, keep monitoring
+                setTimeout(processLevel, 100);
+              }
+            }
+          }
+
+          processLevel();
+        });
+
       }, { ...orderConfig, ats: atsUserConfig });
 
       if (result.success) {
-        console.log(`✅ ATS order on ${subdomain.name} for ${orderConfig.symbol}: qty=${orderConfig.ORDER_QTY} @ ${orderConfig.ORDER_PRICE}`);
+        const detail = result.circuitReached
+          ? `CIRCUIT @ ${result.circuitPrice}, ${result.ordersPlaced} orders placed`
+          : `${result.ordersPlaced} orders placed`;
+        console.log(`✅ ATS ${subdomain.name} [${orderConfig.symbol}]: ${detail}`);
       } else {
-        console.log(`⚠️  ATS order on ${subdomain.name}: ${result.message || JSON.stringify(result.response)}`);
+        console.log(`⚠️  ATS ${subdomain.name}: ${result.message || JSON.stringify(result)}`);
       }
       return result;
     } catch (error) {

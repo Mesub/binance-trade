@@ -1,6 +1,18 @@
 const express = require('express');
 const router = express.Router();
 
+// Get companies from central config (config/companies.js)
+router.get('/companies', (req, res) => {
+  const priceMonitor = req.app.get('priceMonitor');
+  res.json(priceMonitor.getCompanies());
+});
+
+// Get accounts from central config (config/companies.js)
+router.get('/accounts', (req, res) => {
+  const priceMonitor = req.app.get('priceMonitor');
+  res.json(priceMonitor.getAccounts());
+});
+
 // Get all subdomains configuration
 router.get('/subdomains', (req, res) => {
   const priceMonitor = req.app.get('priceMonitor');
@@ -10,21 +22,30 @@ router.get('/subdomains', (req, res) => {
 // Add or update subdomain
 router.post('/subdomains', (req, res) => {
   const priceMonitor = req.app.get('priceMonitor');
-  const { id, url, scriptId, name, enabled, role, type } = req.body;
+  const { id, url, scriptId, name, accountId, domain, enabled, role, type, broker, acntid, clientAcc } = req.body;
 
   if (!url || !name) {
     return res.status(400).json({ error: 'URL and name are required' });
   }
 
-  priceMonitor.addSubdomain({
+  const subdomain = {
     id,
     url,
     scriptId,
     name,
+    accountId: accountId || name,
+    domain: domain || '',
     enabled: enabled !== false,
     role: role || 'both',
     type: type || 'nepse'
-  });
+  };
+
+  // ATS-specific fields
+  if (broker) subdomain.broker = broker;
+  if (acntid) subdomain.acntid = acntid;
+  if (clientAcc) subdomain.clientAcc = clientAcc;
+
+  priceMonitor.addSubdomain(subdomain);
   res.json({ success: true, message: 'Subdomain added/updated' });
 });
 
@@ -79,6 +100,17 @@ router.post('/price-target', (req, res) => {
 
   priceMonitor.setPriceTarget(target, condition || 'lte');
   res.json({ success: true, message: 'Price target set' });
+});
+
+// Open browser and TMS pages (for login)
+router.post('/browser/open', async (req, res) => {
+  const priceMonitor = req.app.get('priceMonitor');
+  try {
+    await priceMonitor.openBrowser();
+    res.json({ success: true, message: 'Browser opened, log in to all tabs' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Start monitoring
@@ -208,43 +240,6 @@ router.post('/pre-orders', (req, res) => {
 
   priceMonitor.setPreOrders(preOrders);
   res.json({ success: true, message: 'Pre-orders configured' });
-});
-
-// ============================================
-// ATS BROKER CONFIG
-// ============================================
-
-// Get all ATS broker configs
-router.get('/ats-config', (req, res) => {
-  const priceMonitor = req.app.get('priceMonitor');
-  res.json(priceMonitor.getAtsConfig());
-});
-
-// Set all ATS broker configs (bulk)
-router.post('/ats-config', (req, res) => {
-  const priceMonitor = req.app.get('priceMonitor');
-  const { atsConfig } = req.body;
-
-  if (!atsConfig || typeof atsConfig !== 'object') {
-    return res.status(400).json({ error: 'atsConfig object is required' });
-  }
-
-  priceMonitor.setAtsConfig(atsConfig);
-  res.json({ success: true, message: 'ATS config saved' });
-});
-
-// Set single ATS broker config
-router.post('/ats-config/:scriptId', (req, res) => {
-  const priceMonitor = req.app.get('priceMonitor');
-  const { scriptId } = req.params;
-  const config = req.body;
-
-  if (!config.broker || !config.acntid || !config.clientAcc) {
-    return res.status(400).json({ error: 'broker, acntid, and clientAcc are required' });
-  }
-
-  priceMonitor.setAtsConfigForBroker(scriptId, config);
-  res.json({ success: true, message: `ATS config saved for ${scriptId}` });
 });
 
 module.exports = router;
