@@ -16,7 +16,7 @@ module.exports = {
         'RSML': {
             enabled: true,
             targetPrice: 395.3,
-            qty: 10
+            qty: 50
         },
         'SABBL': {
             enabled: false,
@@ -32,19 +32,32 @@ module.exports = {
     // type: 'nepse' or 'ats'
     // role: 'price', 'order', or 'both'
     // username/password: auto-login credentials (optional, leave blank for manual login)
-    // ATS-specific (optional): broker, acntid, clientAcc, scriptList
+    // scriptList (optional): per-symbol order config [{ symbol, ORDER_QTY, MAX_ORDER_QTY, ORDER_PRICE }]
+    // ATS-specific (optional): broker, acntid, clientAcc
     // URL is derived: https://${tms}.${domain}/ (NEPSE) or https://${tms}.${domain}/atsweb (ATS)
     accounts: [
         // { name: 'TMS13', tms: 'tms13', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
         // { name: 'TMS17', tms: 'tms17', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
-         { name: 'TMS18', tms: 'tms18', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
+         { name: 'TMS18', tms: 'tms18', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '',
+          scriptList: [
+              { symbol: 'NLO', ORDER_QTY: 50, MAX_ORDER_QTY: 1000, ORDER_PRICE: 269.4 },
+              { symbol: 'RSML', ORDER_QTY: 50, MAX_ORDER_QTY: 2500, ORDER_PRICE: 395.3 },
+              { symbol: 'SABBL', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 399.3 }
+          ]
+        },
         // { name: 'TMS32', tms: 'tms32', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
         // { name: 'TMS34', tms: 'tms34', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
         // { name: 'TMS35', tms: 'tms35', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
         // { name: 'TMS41', tms: 'tms41', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
         // { name: 'TMS45', tms: 'tms45', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
         // { name: 'TMS55', tms: 'tms55', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
-         { name: 'TMS57', tms: 'tms57', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
+         { name: 'TMS57', tms: 'tms57', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '',
+          scriptList: [
+              { symbol: 'NLO', ORDER_QTY: 50, MAX_ORDER_QTY: 1000, ORDER_PRICE: 269.4 },
+              { symbol: 'RSML', ORDER_QTY: 50, MAX_ORDER_QTY: 2500, ORDER_PRICE: 395.3 },
+              { symbol: 'SABBL', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 399.3 }
+          ]
+        },
         // { name: 'TMS59', tms: 'tms59', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
         // { name: 'TMS61', tms: 'tms61', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
         // { name: 'TMS63', tms: 'tms63', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
@@ -97,7 +110,7 @@ module.exports = {
           username: '', password: '',
           broker: 'NSH', acntid: '40177', clientAcc: '202103102056673 ( TIKARAM DAHAL-)',
           scriptList: [
-              { symbol: 'RSML', ORDER_QTY: 10, MAX_ORDER_QTY: 400, ORDER_PRICE: 395.3 },
+              { symbol: 'RSML', ORDER_QTY: 50, MAX_ORDER_QTY: 400, ORDER_PRICE: 395.3 },
               { symbol: 'SABBL', ORDER_QTY: 10, MAX_ORDER_QTY: 200, ORDER_PRICE: 399.3 },
               { symbol: 'NLO', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 269.4 }
           ]

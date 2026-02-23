@@ -117,9 +117,10 @@ class PriceMonitor {
       this.subdomains.push(newSubdomain);
       added++;
 
-      // Load scriptList into orderQuantities (keyed by accountId for ATS)
+      // Load scriptList into orderQuantities
+      // Key must match getOrderKey(): ATS uses accountId, NEPSE uses scriptId (tms slug)
       if (account.scriptList && account.scriptList.length > 0) {
-        const orderKey = accountId;
+        const orderKey = type === 'ats' ? accountId : account.tms;
         if (!this.orderQuantities[orderKey]) {
           this.orderQuantities[orderKey] = {};
         }
