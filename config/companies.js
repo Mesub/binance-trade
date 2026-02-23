@@ -10,17 +10,17 @@ module.exports = {
     companies: {
         'NLO': {
             enabled: true,
-            targetPrice: 254.1,
+            targetPrice: 269.4,
             qty: 50
         },
         'RSML': {
             enabled: true,
-            targetPrice: 330.0,
+            targetPrice: 395.3,
             qty: 10
         },
         'SABBL': {
             enabled: false,
-            targetPrice: 330.0,
+            targetPrice: 399.3,
             qty: 10
         }
     },
@@ -37,14 +37,14 @@ module.exports = {
     accounts: [
         // { name: 'TMS13', tms: 'tms13', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
         // { name: 'TMS17', tms: 'tms17', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
-        // { name: 'TMS18', tms: 'tms18', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
+         { name: 'TMS18', tms: 'tms18', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
         // { name: 'TMS32', tms: 'tms32', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
         // { name: 'TMS34', tms: 'tms34', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
         // { name: 'TMS35', tms: 'tms35', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
         // { name: 'TMS41', tms: 'tms41', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
         // { name: 'TMS45', tms: 'tms45', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
         // { name: 'TMS55', tms: 'tms55', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
-        // { name: 'TMS57', tms: 'tms57', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
+         { name: 'TMS57', tms: 'tms57', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
         // { name: 'TMS59', tms: 'tms59', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
         // { name: 'TMS61', tms: 'tms61', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
         // { name: 'TMS63', tms: 'tms63', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
@@ -97,9 +97,9 @@ module.exports = {
           username: '', password: '',
           broker: 'NSH', acntid: '40177', clientAcc: '202103102056673 ( TIKARAM DAHAL-)',
           scriptList: [
-              { symbol: 'RSML', ORDER_QTY: 10, MAX_ORDER_QTY: 400, ORDER_PRICE: 330.0 },
-              { symbol: 'SABBL', ORDER_QTY: 10, MAX_ORDER_QTY: 200, ORDER_PRICE: 330.0 },
-              { symbol: 'NLO', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 254.1 }
+              { symbol: 'RSML', ORDER_QTY: 10, MAX_ORDER_QTY: 400, ORDER_PRICE: 395.3 },
+              { symbol: 'SABBL', ORDER_QTY: 10, MAX_ORDER_QTY: 200, ORDER_PRICE: 399.3 },
+              { symbol: 'NLO', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 269.4 }
           ]
         },
     ]
