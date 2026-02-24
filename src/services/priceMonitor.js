@@ -284,6 +284,18 @@ class PriceMonitor {
     this.saveConfig();
   }
 
+  // Remove order quantity for a specific subdomain and symbol
+  removeOrderQuantity(subdomainId, symbol) {
+    if (this.orderQuantities[subdomainId]) {
+      delete this.orderQuantities[subdomainId][symbol];
+      if (Object.keys(this.orderQuantities[subdomainId]).length === 0) {
+        delete this.orderQuantities[subdomainId];
+      }
+    }
+    this.log(`🎯 Removed ${symbol} from ${subdomainId}`, 'info');
+    this.saveConfig();
+  }
+
   // Bulk set order quantities (from the orderQuantities object format)
   setOrderQuantities(orderQuantities) {
     this.orderQuantities = orderQuantities;
@@ -681,8 +693,15 @@ class PriceMonitor {
             subdomain.targetPrice = companiesConfig.companies[company].targetPrice;
           }
 
-          const companyInfo = company ? ` [${company}]` : '';
-          this.log(`💰 ${subdomain.name}${companyInfo}: ${price} (target: ${subdomain.targetPrice || '-'}) [${fetchTimeMs}ms]`, 'info');
+          if (subdomain.prices && Object.keys(subdomain.prices).length > 0) {
+            const priceStrs = Object.entries(subdomain.prices)
+              .map(([sym, p]) => `${sym}:${p.ltp}${p.matched ? '*' : ''}`)
+              .join(' | ');
+            this.log(`💰 ${subdomain.name}: ${priceStrs} [${fetchTimeMs}ms]`, 'info');
+          } else {
+            const companyInfo = company ? ` [${company}]` : '';
+            this.log(`💰 ${subdomain.name}${companyInfo}: ${price} (target: ${subdomain.targetPrice || '-'}) [${fetchTimeMs}ms]`, 'info');
+          }
           this.broadcast({ type: 'subdomains', data: this.subdomains });
 
           // Check if price matches target
@@ -796,6 +815,7 @@ class PriceMonitor {
           // Store matched company info for order placement
           subdomain.matchedCompany = parsed.company;
           subdomain.matched = parsed.matched || false;
+          if (parsed.allPrices) subdomain.prices = parsed.allPrices;
           return parseFloat(parsed.price);
         }
       }
@@ -824,6 +844,7 @@ class PriceMonitor {
 
       var lastSymbol = null;
       var lastLtp = 0;
+      var allPrices = {};
 
       for (var i = 0; i < companies.length; i++) {
         var company = companies[i];
@@ -845,13 +866,15 @@ class PriceMonitor {
             var ltp = parseFloat(match[1]);
             lastSymbol = company.symbol;
             lastLtp = ltp;
+            allPrices[company.symbol] = { ltp: ltp, target: company.target, matched: ltp <= company.target };
 
             if (ltp <= company.target) {
               return JSON.stringify({
                 company: company.symbol,
                 price: ltp,
                 target: company.target,
-                matched: true
+                matched: true,
+                allPrices: allPrices
               });
             }
           }
@@ -867,7 +890,8 @@ class PriceMonitor {
       return JSON.stringify({
         company: lastSymbol,
         price: lastLtp,
-        matched: false
+        matched: false,
+        allPrices: allPrices
       });
     }, companies);
 
@@ -877,6 +901,7 @@ class PriceMonitor {
       if (parsed.company && parsed.price !== undefined) {
         subdomain.matchedCompany = parsed.company;
         subdomain.matched = parsed.matched || false;
+        if (parsed.allPrices) subdomain.prices = parsed.allPrices;
         return parseFloat(parsed.price);
       }
     } catch (e) {

@@ -110,9 +110,8 @@ class OrderService {
 
         // === Calculate quantities ===
         var maxOrderQty = calculateMaxOrderQty(config);
-        var circuitAmount = config.ORDER_PRICE === 0
-          ? roundPrice(scrip.dprRangeHigh || config.ORDER_PRICE * 1.1)
-          : roundPrice(config.ORDER_PRICE * 1.1);
+        // Circuit = ORDER_PRICE * 1.1 (ORDER_PRICE = previous day close, set in companies.js)
+        var circuitAmount = roundPrice(config.ORDER_PRICE * 1.1);
 
         // === Build common order body (matching reference getBody + commonBody) ===
         var commonOrderBody = {
@@ -421,6 +420,7 @@ class OrderService {
         }
 
         // === Calculate order levels ===
+        // Circuit = ORDER_PRICE * 1.1 (ORDER_PRICE = previous day close, set in companies.js)
         var circuitLimit = roundPrice(config.ORDER_PRICE * 1.10);
         var levels = [];
         var prevPrice = currentPrice;

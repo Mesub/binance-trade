@@ -205,6 +205,14 @@ router.post('/order-quantities/:subdomainId/:symbol', (req, res) => {
   res.json({ success: true, message: `Order config set for ${subdomainId}/${symbol}` });
 });
 
+// Remove order config for specific subdomain/symbol
+router.delete('/order-quantities/:subdomainId/:symbol', (req, res) => {
+  const priceMonitor = req.app.get('priceMonitor');
+  const { subdomainId, symbol } = req.params;
+  priceMonitor.removeOrderQuantity(subdomainId, symbol);
+  res.json({ success: true, message: `Removed ${symbol} from ${subdomainId}` });
+});
+
 // Get order config for specific subdomain/symbol
 router.get('/order-quantities/:subdomainId/:symbol', (req, res) => {
   const priceMonitor = req.app.get('priceMonitor');

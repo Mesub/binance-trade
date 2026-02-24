@@ -15,12 +15,12 @@ module.exports = {
         },
         'RSML': {
             enabled: true,
-            targetPrice: 395.3,
+            targetPrice: 432.0,
             qty: 50
         },
         'SABBL': {
             enabled: false,
-            targetPrice: 399.3,
+            targetPrice: 439.2,
             qty: 10
         }
     },
@@ -41,8 +41,8 @@ module.exports = {
          { name: 'TMS18', tms: 'tms18', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '',
           scriptList: [
               { symbol: 'NLO', ORDER_QTY: 50, MAX_ORDER_QTY: 1000, ORDER_PRICE: 269.4 },
-              { symbol: 'RSML', ORDER_QTY: 50, MAX_ORDER_QTY: 2500, ORDER_PRICE: 395.3 },
-              { symbol: 'SABBL', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 399.3 }
+              { symbol: 'RSML', ORDER_QTY: 50, MAX_ORDER_QTY: 2500, ORDER_PRICE: 432.0 },
+              { symbol: 'SABBL', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 439.2 }
           ]
         },
         // { name: 'TMS32', tms: 'tms32', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
@@ -54,8 +54,8 @@ module.exports = {
          { name: 'TMS57', tms: 'tms57', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '',
           scriptList: [
               { symbol: 'NLO', ORDER_QTY: 50, MAX_ORDER_QTY: 1000, ORDER_PRICE: 269.4 },
-              { symbol: 'RSML', ORDER_QTY: 50, MAX_ORDER_QTY: 2500, ORDER_PRICE: 395.3 },
-              { symbol: 'SABBL', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 399.3 }
+              { symbol: 'RSML', ORDER_QTY: 50, MAX_ORDER_QTY: 2500, ORDER_PRICE: 432.0 },
+              { symbol: 'SABBL', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 439.2 }
           ]
         },
         // { name: 'TMS59', tms: 'tms59', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
@@ -110,8 +110,8 @@ module.exports = {
           username: '', password: '',
           broker: 'NSH', acntid: '40177', clientAcc: '202103102056673 ( TIKARAM DAHAL-)',
           scriptList: [
-              { symbol: 'RSML', ORDER_QTY: 50, MAX_ORDER_QTY: 400, ORDER_PRICE: 395.3 },
-              { symbol: 'SABBL', ORDER_QTY: 10, MAX_ORDER_QTY: 200, ORDER_PRICE: 399.3 },
+              { symbol: 'RSML', ORDER_QTY: 50, MAX_ORDER_QTY: 400, ORDER_PRICE: 432.0 },
+              { symbol: 'SABBL', ORDER_QTY: 10, MAX_ORDER_QTY: 200, ORDER_PRICE: 439.2 },
               { symbol: 'NLO', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 269.4 }
           ]
         },

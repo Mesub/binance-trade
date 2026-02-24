@@ -124,7 +124,8 @@ class PriceMonitorApp {
       for (const [symbol, config] of Object.entries(companies)) {
         this.companyConfig[symbol] = {
           enabled: config.enabled,
-          targetPrice: config.targetPrice
+          targetPrice: config.targetPrice,
+          qty: config.qty || 10
         };
       }
     } catch (error) {
@@ -391,22 +392,8 @@ class PriceMonitorApp {
       }[subdomain.status] || '';
 
       const lastCheckText = subdomain.lastCheck ? new Date(subdomain.lastCheck).toLocaleTimeString() : '-';
-      const companyText = subdomain.matchedCompany ? `[${subdomain.matchedCompany}]` : '';
       const typeBadge = `<span class="type-badge ${type}">${type}</span>`;
       const domainText = subdomain.domain ? `<span class="domain-badge">${subdomain.domain}</span>` : '';
-
-      // Price display
-      const hasPrice = subdomain.lastPrice !== null && subdomain.lastPrice !== undefined;
-      const priceText = hasPrice ? subdomain.lastPrice : '-';
-
-      // Target price from server
-      const targetText = subdomain.targetPrice ? subdomain.targetPrice : '-';
-
-      // Price vs target comparison
-      let priceClass = '';
-      if (hasPrice && subdomain.targetPrice) {
-        priceClass = subdomain.lastPrice <= subdomain.targetPrice ? 'price-match' : 'price-above';
-      }
 
       // Timing
       const fetchMs = subdomain.fetchTimeMs != null ? `${subdomain.fetchTimeMs}ms` : '-';
@@ -419,19 +406,40 @@ class PriceMonitorApp {
       const atsInfo = type === 'ats' && subdomain.broker
         ? `<div class="ats-info-row">ATS: ${subdomain.broker} / ${subdomain.acntid || '-'}</div>` : '';
 
+      // Build scriptList: show all companies with checkboxes + per-symbol LTP
+      const orderKey = this.getOrderKey(subdomain);
+      const accountSymbols = (this.orderQuantities || {})[orderKey] || {};
+      const prices = subdomain.prices || {};
+
+      const scriptListHtml = Object.entries(this.companyConfig).map(([sym, cfg]) => {
+        const isEnabled = sym in accountSymbols;
+        const symCfg = accountSymbols[sym] || {};
+        const p = prices[sym];
+        const ltp = p ? p.ltp : '-';
+        const target = symCfg.ORDER_PRICE || cfg.targetPrice || '-';
+        const isMatch = p && p.matched;
+        const ltpClass = p ? (p.matched ? 'price-match' : 'price-above') : '';
+        const itemClass = isEnabled ? (isMatch ? 'matched' : '') : 'unchecked';
+        const qtyText = isEnabled ? `${symCfg.ORDER_QTY || '-'}|${symCfg.MAX_ORDER_QTY || '-'}` : '';
+
+        return `<div class="script-item ${itemClass}">
+          <label class="script-check">
+            <input type="checkbox" ${isEnabled ? 'checked' : ''}
+              onchange="app.toggleSymbol('${orderKey}', '${sym}', this.checked)"> ${sym}
+          </label>
+          <span class="script-ltp ${ltpClass}">${ltp}</span>
+          <span class="script-target">/ ${target}</span>
+          <span class="script-qty">${qtyText}</span>
+        </div>`;
+      }).join('');
+
       return `
         <div class="subdomain-item ${roleClass} ${statusClass} ${subdomain.enabled ? '' : 'disabled'}">
           <div class="subdomain-role-indicator ${role}"></div>
           <div class="subdomain-info">
-            <div class="subdomain-name">${statusEmoji} ${subdomain.name} ${companyText} ${typeBadge} ${domainText}</div>
+            <div class="subdomain-name">${statusEmoji} ${subdomain.name} ${typeBadge} ${domainText}</div>
             ${atsInfo}
-            <div class="subdomain-price-row">
-              <span class="price-label">LTP:</span>
-              <span class="price-value ${priceClass}">${priceText}</span>
-              <span class="price-separator">|</span>
-              <span class="price-label">Target:</span>
-              <span class="target-value">${targetText}</span>
-            </div>
+            <div class="script-list">${scriptListHtml}</div>
             <div class="subdomain-timing-row">
               <span class="timing-badge fetch-time">Fetch: ${fetchMs}</span>
               ${orderTimeBadge}
@@ -500,9 +508,9 @@ async function checkPrices() {
     // Get scrip list from localStorage (same as your original code)
     var totalScripList = JSON.parse(localStorage.getItem("__securities__")).data;
 
-    // Track last fetched price so we always return a real LTP
     var lastSymbol = null;
     var lastLtp = 0;
+    var allPrices = {};
 
     for (const [symbol, config] of Object.entries(COMPANIES)) {
         if (!config.enabled) continue;
@@ -532,6 +540,7 @@ async function checkPrices() {
                 var ltp = parseFloat(data.data.ltp);
                 lastSymbol = symbol;
                 lastLtp = ltp;
+                allPrices[symbol] = { ltp: ltp, target: config.target, matched: ltp <= config.target };
                 console.log(symbol + ': ' + ltp + ' (target: ' + config.target + ') [id:' + scrip.id + ']');
 
                 if (ltp <= config.target) {
@@ -540,7 +549,8 @@ async function checkPrices() {
                         price: ltp,
                         target: config.target,
                         scripId: scrip.id,
-                        matched: true
+                        matched: true,
+                        allPrices: allPrices
                     });
                 }
             }
@@ -554,7 +564,8 @@ async function checkPrices() {
     return JSON.stringify({
         company: reportSymbol,
         price: lastLtp,
-        matched: false
+        matched: false,
+        allPrices: allPrices
     });
 }
 
@@ -769,6 +780,35 @@ return { success: false, message: 'Order functions not loaded. Load your trading
     this.priceCheckCount = 0;
     this.orderPlaceCount = 0;
     this.updateCounts();
+  }
+
+  getOrderKey(subdomain) {
+    return subdomain.type === 'ats' ? subdomain.accountId : subdomain.scriptId;
+  }
+
+  async toggleSymbol(orderKey, symbol, checked) {
+    if (checked) {
+      // Add symbol with defaults from company config
+      const company = this.companyConfig[symbol] || {};
+      const config = {
+        ORDER_QTY: company.qty || 10,
+        MAX_ORDER_QTY: 1000,
+        ORDER_PRICE: company.targetPrice || 0,
+        BELOW_PRICE: 0,
+        COLLATERAL: 0
+      };
+      await fetch(`/api/order-quantities/${orderKey}/${symbol}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config)
+      });
+    } else {
+      await fetch(`/api/order-quantities/${orderKey}/${symbol}`, { method: 'DELETE' });
+    }
+    // Reload order quantities and re-render
+    const oqRes = await fetch('/api/order-quantities');
+    this.orderQuantities = await oqRes.json();
+    this.renderSubdomains();
   }
 
   handleOrdersComplete(results) {
