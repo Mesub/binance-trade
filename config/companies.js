@@ -75,8 +75,8 @@ module.exports = {
         //   username: '', password: '',
         //   broker: 'NSH', acntid: '60152', clientAcc: '202206093068140 ( BHAGWOTI ADHIKARI-)',
         //   scriptList: [
-        //       { symbol: 'SABBL', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 330.0 },
-        //       { symbol: 'RSML', ORDER_QTY: 50, MAX_ORDER_QTY: 2500, ORDER_PRICE: 330.0 },
+        //       { symbol: 'SABBL', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 439.2 },
+        //       { symbol: 'RSML', ORDER_QTY: 50, MAX_ORDER_QTY: 2500, ORDER_PRICE: 432.0 },
         //       { symbol: 'NLO', ORDER_QTY: 100, MAX_ORDER_QTY: 1000, ORDER_PRICE: 254.1 }
         //   ]
         // },
@@ -84,8 +84,8 @@ module.exports = {
         //   username: '', password: '',
         //   broker: 'NSH', acntid: '75684', clientAcc: '202101051789279 ( SUBASH ADHIKARI-461002/1233 )',
         //   scriptList: [
-        //       { symbol: 'SABBL', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 330.0 },
-        //       { symbol: 'RSML', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 330.0 }
+        //       { symbol: 'SABBL', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 439.2 },
+        //       { symbol: 'RSML', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 432.0 }
         //   ]
         // },
         // { name: 'SUBASH64', tms: 'tms', domain: 'sunsecurities.com', type: 'ats', role: 'both',
