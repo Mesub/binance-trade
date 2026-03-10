@@ -15,12 +15,12 @@ module.exports = {
         },
         'RSML': {
             enabled: true,
-            targetPrice: 432.0,
+            targetPrice: 675.3,
             qty: 50
         },
         'SABBL': {
             enabled: false,
-            targetPrice: 439.2,
+            targetPrice: 712.8,
             qty: 10
         }
     },
@@ -41,8 +41,8 @@ module.exports = {
          { name: 'TMS18', tms: 'tms18', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '',
           scriptList: [
               { symbol: 'NLO', ORDER_QTY: 50, MAX_ORDER_QTY: 1000, ORDER_PRICE: 269.4 },
-              { symbol: 'RSML', ORDER_QTY: 50, MAX_ORDER_QTY: 2500, ORDER_PRICE: 432.0 },
-              { symbol: 'SABBL', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 439.2 }
+              { symbol: 'RSML', ORDER_QTY: 50, MAX_ORDER_QTY: 2500, ORDER_PRICE: 675.3 },
+              { symbol: 'SABBL', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 712.8 }
           ]
         },
         // { name: 'TMS32', tms: 'tms32', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
@@ -54,8 +54,8 @@ module.exports = {
          { name: 'TMS57', tms: 'tms57', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '',
           scriptList: [
               { symbol: 'NLO', ORDER_QTY: 50, MAX_ORDER_QTY: 1000, ORDER_PRICE: 269.4 },
-              { symbol: 'RSML', ORDER_QTY: 50, MAX_ORDER_QTY: 2500, ORDER_PRICE: 432.0 },
-              { symbol: 'SABBL', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 439.2 }
+              { symbol: 'RSML', ORDER_QTY: 50, MAX_ORDER_QTY: 2500, ORDER_PRICE: 675.3 },
+              { symbol: 'SABBL', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 712.8 }
           ]
         },
         // { name: 'TMS59', tms: 'tms59', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
@@ -75,8 +75,8 @@ module.exports = {
         //   username: '', password: '',
         //   broker: 'NSH', acntid: '60152', clientAcc: '202206093068140 ( BHAGWOTI ADHIKARI-)',
         //   scriptList: [
-        //       { symbol: 'SABBL', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 439.2 },
-        //       { symbol: 'RSML', ORDER_QTY: 50, MAX_ORDER_QTY: 2500, ORDER_PRICE: 432.0 },
+        //       { symbol: 'SABBL', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 712.8 },
+        //       { symbol: 'RSML', ORDER_QTY: 50, MAX_ORDER_QTY: 2500, ORDER_PRICE: 675.3 },
         //       { symbol: 'NLO', ORDER_QTY: 100, MAX_ORDER_QTY: 1000, ORDER_PRICE: 254.1 }
         //   ]
         // },
@@ -84,8 +84,8 @@ module.exports = {
         //   username: '', password: '',
         //   broker: 'NSH', acntid: '75684', clientAcc: '202101051789279 ( SUBASH ADHIKARI-461002/1233 )',
         //   scriptList: [
-        //       { symbol: 'SABBL', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 439.2 },
-        //       { symbol: 'RSML', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 432.0 }
+        //       { symbol: 'SABBL', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 712.8 },
+        //       { symbol: 'RSML', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 675.3 }
         //   ]
         // },
         // { name: 'SUBASH64', tms: 'tms', domain: 'sunsecurities.com', type: 'ats', role: 'both',
@@ -110,8 +110,8 @@ module.exports = {
           username: '', password: '',
           broker: 'NSH', acntid: '40177', clientAcc: '202103102056673 ( TIKARAM DAHAL-)',
           scriptList: [
-              { symbol: 'RSML', ORDER_QTY: 50, MAX_ORDER_QTY: 400, ORDER_PRICE: 432.0 },
-              { symbol: 'SABBL', ORDER_QTY: 10, MAX_ORDER_QTY: 200, ORDER_PRICE: 439.2 },
+              { symbol: 'RSML', ORDER_QTY: 50, MAX_ORDER_QTY: 400, ORDER_PRICE: 675.3 },
+              { symbol: 'SABBL', ORDER_QTY: 10, MAX_ORDER_QTY: 200, ORDER_PRICE: 712.8 },
               { symbol: 'NLO', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 269.4 }
           ]
         },

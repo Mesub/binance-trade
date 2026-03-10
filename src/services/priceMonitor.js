@@ -296,6 +296,21 @@ class PriceMonitor {
     this.saveConfig();
   }
 
+  // Update ORDER_PRICE for a symbol across ALL subdomains in orderQuantities
+  updateSymbolPrice(symbol, price) {
+    const parsed = parseFloat(price);
+    let updated = 0;
+    for (const subdomainId of Object.keys(this.orderQuantities)) {
+      if (this.orderQuantities[subdomainId][symbol]) {
+        this.orderQuantities[subdomainId][symbol].ORDER_PRICE = parsed;
+        updated++;
+      }
+    }
+    this.log(`🎯 Updated ${symbol} ORDER_PRICE → ${parsed} across ${updated} account(s)`, 'info');
+    if (updated > 0) this.saveConfig();
+    return updated;
+  }
+
   // Bulk set order quantities (from the orderQuantities object format)
   setOrderQuantities(orderQuantities) {
     this.orderQuantities = orderQuantities;
@@ -663,10 +678,7 @@ class PriceMonitor {
         if (!this.isMonitoring) break;
 
         try {
-          // Delay between requests: 0ms for ATS, 230ms for NEPSE
-          if (subdomain.type !== 'ats' && i > 0) {
-            await new Promise(resolve => setTimeout(resolve, 230));
-          }
+          // No delay between subdomains - fire as fast as possible
 
           subdomain.status = 'checking';
           this.broadcast({ type: 'subdomains', data: this.subdomains });
@@ -831,11 +843,20 @@ class PriceMonitor {
   async checkAtsPrice(subdomain) {
     const page = await this.browserService.getPage(subdomain.accountId, subdomain.url);
 
-    // Build list of enabled companies with targets from central config
-    const companies = [];
-    for (const [symbol, config] of Object.entries(companiesConfig.companies)) {
-      if (config.enabled) {
-        companies.push({ symbol, target: config.targetPrice });
+    // Build list from orderQuantities for this subdomain (respects UI checkboxes)
+    const orderKey = this.getOrderKey(subdomain);
+    const subdomainOrderConfig = this.orderQuantities[orderKey] || {};
+    let companies = Object.entries(subdomainOrderConfig).map(([symbol, config]) => ({
+      symbol,
+      target: config.ORDER_PRICE
+    }));
+
+    // Fallback to central config if no per-subdomain config
+    if (companies.length === 0) {
+      for (const [symbol, config] of Object.entries(companiesConfig.companies)) {
+        if (config.enabled) {
+          companies.push({ symbol, target: config.targetPrice });
+        }
       }
     }
 

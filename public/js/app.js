@@ -199,14 +199,33 @@ class PriceMonitorApp {
     });
     localStorage.setItem('companyConfig', JSON.stringify(this.companyConfig));
 
-    // Update server config
+    // Update server config (targetPrice for price checking)
     fetch('/api/company-config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(this.companyConfig)
     });
 
-    this.addLog('Company config saved', 'success');
+    // Sync ORDER_PRICE across ALL accounts for each symbol via single endpoint
+    companies.forEach(company => {
+      const price = this.companyConfig[company].targetPrice;
+      fetch(`/api/symbol-price/${company}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ price })
+      });
+    });
+
+    // Auto-regenerate price check script so NEPSE price check reflects updated symbols
+    const newScript = this.generatePriceScript();
+    document.getElementById('priceScript').value = newScript;
+    fetch('/api/price-script', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ script: newScript })
+    });
+
+    this.addLog('Company config saved (price synced to all accounts)', 'success');
   }
 
   async addSubdomain() {

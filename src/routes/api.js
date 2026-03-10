@@ -220,6 +220,20 @@ router.get('/order-quantities/:subdomainId/:symbol', (req, res) => {
   res.json(priceMonitor.getOrderConfig(subdomainId, symbol));
 });
 
+// Update ORDER_PRICE for a symbol across ALL subdomains at once
+router.post('/symbol-price/:symbol', (req, res) => {
+  const priceMonitor = req.app.get('priceMonitor');
+  const { symbol } = req.params;
+  const { price } = req.body;
+
+  if (price === undefined) {
+    return res.status(400).json({ error: 'price is required' });
+  }
+
+  const updated = priceMonitor.updateSymbolPrice(symbol, price);
+  res.json({ success: true, symbol, price: parseFloat(price), updated });
+});
+
 // Get enabled symbols for a subdomain
 router.get('/order-quantities/:subdomainId/symbols', (req, res) => {
   const priceMonitor = req.app.get('priceMonitor');
