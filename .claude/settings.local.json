@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(npx playwright install:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(cd:*)"
     ]
   }
 }

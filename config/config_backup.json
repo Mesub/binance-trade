@@ -344,13 +344,19 @@
         "ORDER_PRICE": 254.1,
         "COLLATERAL": 0
       },
-      "SYPNL": {
+      "RSML": {
         "ORDER_QTY": 10,
         "MAX_ORDER_QTY": 1000,
         "ORDER_PRICE": 684.8,
         "COLLATERAL": 500000
       },
-      "SWASTIK": {
+      "HFIN": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 684.8,
+        "COLLATERAL": 500000
+      },
+      "SABBL:": {
         "ORDER_QTY": 10,
         "MAX_ORDER_QTY": 1000,
         "ORDER_PRICE": 2327,
@@ -365,17 +371,23 @@
         "BELOW_PRICE": 240,
         "COLLATERAL": 0
       },
-      "SYPNL": {
+      "RSML": {
         "ORDER_QTY": 10,
         "MAX_ORDER_QTY": 1000,
-        "ORDER_PRICE": 684.8,
-        "COLLATERAL": 1000000
+        "ORDER_PRICE": 893.3,
+        "COLLATERAL": 500000
       },
-      "SWASTIK": {
+      "HFIN": {
         "ORDER_QTY": 10,
         "MAX_ORDER_QTY": 1000,
-        "ORDER_PRICE": 2327,
-        "COLLATERAL": 1000
+        "ORDER_PRICE": 111.8,
+        "COLLATERAL": 500000
+      },
+      "SABBL:": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 948.6,
+        "COLLATERAL": 500000
       }
     },
     "tms32": {
@@ -806,14 +818,14 @@
       "SABBL": {
         "ORDER_QTY": 10,
         "MAX_ORDER_QTY": 1000,
-        "ORDER_PRICE": 712.8,
+        "ORDER_PRICE": 948.6,
         "BELOW_PRICE": 0,
         "COLLATERAL": 0
       },
       "RSML": {
         "ORDER_QTY": 50,
         "MAX_ORDER_QTY": 2500,
-        "ORDER_PRICE": 675.3,
+        "ORDER_PRICE": 893.3,
         "BELOW_PRICE": 0,
         "COLLATERAL": 0
       },
@@ -823,20 +835,34 @@
         "ORDER_PRICE": 254.1,
         "BELOW_PRICE": 0,
         "COLLATERAL": 0
+      },
+      "HFIN": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 111.8,
+        "BELOW_PRICE": 0,
+        "COLLATERAL": 0
       }
     },
     "SUBASH": {
       "SABBL": {
         "ORDER_QTY": 10,
         "MAX_ORDER_QTY": 1000,
-        "ORDER_PRICE": 712.8,
+        "ORDER_PRICE": 948.6,
         "BELOW_PRICE": 0,
         "COLLATERAL": 0
       },
       "RSML": {
         "ORDER_QTY": 10,
         "MAX_ORDER_QTY": 1000,
-        "ORDER_PRICE": 675.3,
+        "ORDER_PRICE": 893.3,
+        "BELOW_PRICE": 0,
+        "COLLATERAL": 0
+      },
+      "HFIN": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 111.8,
         "BELOW_PRICE": 0,
         "COLLATERAL": 0
       }
@@ -845,14 +871,14 @@
       "RSML": {
         "ORDER_QTY": 10,
         "MAX_ORDER_QTY": 1000,
-        "ORDER_PRICE": 300,
+        "ORDER_PRICE": 893.3,
         "BELOW_PRICE": 0,
         "COLLATERAL": 0
       },
       "SABBL": {
         "ORDER_QTY": 10,
         "MAX_ORDER_QTY": 1000,
-        "ORDER_PRICE": 712.8,
+        "ORDER_PRICE": 948.6,
         "BELOW_PRICE": 0,
         "COLLATERAL": 0
       },
@@ -860,6 +886,13 @@
         "ORDER_QTY": 10,
         "MAX_ORDER_QTY": 1000,
         "ORDER_PRICE": 254.1,
+        "BELOW_PRICE": 0,
+        "COLLATERAL": 0
+      },
+      "HFIN": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 111.8,
         "BELOW_PRICE": 0,
         "COLLATERAL": 0
       }
@@ -868,14 +901,14 @@
       "RSML": {
         "ORDER_QTY": 10,
         "MAX_ORDER_QTY": 400,
-        "ORDER_PRICE": 781.7,
+        "ORDER_PRICE": 893.3,
         "BELOW_PRICE": 0,
         "COLLATERAL": 0
       },
       "SABBL": {
         "ORDER_QTY": 10,
         "MAX_ORDER_QTY": 200,
-        "ORDER_PRICE": 712.8,
+        "ORDER_PRICE": 948.6,
         "BELOW_PRICE": 0,
         "COLLATERAL": 0
       },
@@ -883,6 +916,13 @@
         "ORDER_QTY": 10,
         "MAX_ORDER_QTY": 1000,
         "ORDER_PRICE": 254.1,
+        "BELOW_PRICE": 0,
+        "COLLATERAL": 0
+      },
+      "HFIN": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 111.8,
         "BELOW_PRICE": 0,
         "COLLATERAL": 0
       }
@@ -891,14 +931,14 @@
       "RSML": {
         "ORDER_QTY": 10,
         "MAX_ORDER_QTY": 400,
-        "ORDER_PRICE": 675.3,
+        "ORDER_PRICE": 893.3,
         "BELOW_PRICE": 0,
         "COLLATERAL": 0
       },
       "SABBL": {
         "ORDER_QTY": 10,
         "MAX_ORDER_QTY": 200,
-        "ORDER_PRICE": 712.8,
+        "ORDER_PRICE": 948.6,
         "BELOW_PRICE": 0,
         "COLLATERAL": 0
       },
@@ -906,6 +946,13 @@
         "ORDER_QTY": 10,
         "MAX_ORDER_QTY": 1000,
         "ORDER_PRICE": 254.1,
+        "BELOW_PRICE": 0,
+        "COLLATERAL": 0
+      },
+      "HFIN": {
+        "ORDER_QTY": 10,
+        "MAX_ORDER_QTY": 1000,
+        "ORDER_PRICE": 111.8,
         "BELOW_PRICE": 0,
         "COLLATERAL": 0
       }
