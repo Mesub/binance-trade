@@ -38,7 +38,7 @@ module.exports = {
     accounts: [
         // { name: 'TMS13', tms: 'tms13', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
         // { name: 'TMS17', tms: 'tms17', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
-         { name: 'TMS18', tms: 'tms18', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '',
+         { name: 'TMS18', tms: 'tms18', domain: 'nepsetms.com.np', type: 'nepse', role: 'order', username: '', password: '',
           scriptList: [
               { symbol: 'NLO', ORDER_QTY: 50, MAX_ORDER_QTY: 1000, ORDER_PRICE: 269.4 },
               { symbol: 'RSML', ORDER_QTY: 50, MAX_ORDER_QTY: 2500, ORDER_PRICE: 675.3 },
@@ -51,7 +51,7 @@ module.exports = {
         // { name: 'TMS41', tms: 'tms41', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
         // { name: 'TMS45', tms: 'tms45', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
         // { name: 'TMS55', tms: 'tms55', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
-         { name: 'TMS57', tms: 'tms57', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '',
+         { name: 'TMS57', tms: 'tms57', domain: 'nepsetms.com.np', type: 'nepse', role: 'order', username: '', password: '',
           scriptList: [
               { symbol: 'NLO', ORDER_QTY: 50, MAX_ORDER_QTY: 1000, ORDER_PRICE: 269.4 },
               { symbol: 'RSML', ORDER_QTY: 50, MAX_ORDER_QTY: 2500, ORDER_PRICE: 675.3 },

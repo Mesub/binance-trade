@@ -431,7 +431,7 @@ class PriceMonitorApp {
       const prices = subdomain.prices || {};
 
       const scriptListHtml = Object.entries(this.companyConfig).map(([sym, cfg]) => {
-        const isEnabled = sym in accountSymbols;
+        const isEnabled = sym in accountSymbols && accountSymbols[sym].enabled !== false;
         const symCfg = accountSymbols[sym] || {};
         const p = prices[sym];
         const ltp = p ? p.ltp : '-';
@@ -807,14 +807,16 @@ return { success: false, message: 'Order functions not loaded. Load your trading
 
   async toggleSymbol(orderKey, symbol, checked) {
     if (checked) {
-      // Add symbol with defaults from company config
+      // Enable symbol - use existing config if available, otherwise defaults
+      const accountSymbols = (this.orderQuantities || {})[orderKey] || {};
+      const existing = accountSymbols[symbol];
       const company = this.companyConfig[symbol] || {};
       const config = {
-        ORDER_QTY: company.qty || 10,
-        MAX_ORDER_QTY: 1000,
-        ORDER_PRICE: company.targetPrice || 0,
-        BELOW_PRICE: 0,
-        COLLATERAL: 0
+        ORDER_QTY: (existing && existing.ORDER_QTY) || company.qty || 10,
+        MAX_ORDER_QTY: (existing && existing.MAX_ORDER_QTY) || 1000,
+        ORDER_PRICE: (existing && existing.ORDER_PRICE) || company.targetPrice || 0,
+        BELOW_PRICE: (existing && existing.BELOW_PRICE) || 0,
+        COLLATERAL: (existing && existing.COLLATERAL) || 0
       };
       await fetch(`/api/order-quantities/${orderKey}/${symbol}`, {
         method: 'POST',
@@ -822,6 +824,7 @@ return { success: false, message: 'Order functions not loaded. Load your trading
         body: JSON.stringify(config)
       });
     } else {
+      // Disable symbol (preserves config)
       await fetch(`/api/order-quantities/${orderKey}/${symbol}`, { method: 'DELETE' });
     }
     // Reload order quantities and re-render

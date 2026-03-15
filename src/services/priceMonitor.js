@@ -273,26 +273,26 @@ class PriceMonitor {
     if (!this.orderQuantities[subdomainId]) {
       this.orderQuantities[subdomainId] = {};
     }
+    // If symbol already exists, just enable it and update config; otherwise create new
+    const existing = this.orderQuantities[subdomainId][symbol];
     this.orderQuantities[subdomainId][symbol] = {
-      ORDER_QTY: config.ORDER_QTY || DEFAULT_ORDER.ORDER_QTY,
-      MAX_ORDER_QTY: config.MAX_ORDER_QTY || DEFAULT_ORDER.MAX_ORDER_QTY,
-      ORDER_PRICE: config.ORDER_PRICE || DEFAULT_ORDER.ORDER_PRICE,
-      BELOW_PRICE: config.BELOW_PRICE || DEFAULT_ORDER.BELOW_PRICE,
-      COLLATERAL: config.COLLATERAL || DEFAULT_ORDER.COLLATERAL
+      ORDER_QTY: config.ORDER_QTY || (existing ? existing.ORDER_QTY : DEFAULT_ORDER.ORDER_QTY),
+      MAX_ORDER_QTY: config.MAX_ORDER_QTY || (existing ? existing.MAX_ORDER_QTY : DEFAULT_ORDER.MAX_ORDER_QTY),
+      ORDER_PRICE: config.ORDER_PRICE || (existing ? existing.ORDER_PRICE : DEFAULT_ORDER.ORDER_PRICE),
+      BELOW_PRICE: config.BELOW_PRICE ?? (existing ? existing.BELOW_PRICE : DEFAULT_ORDER.BELOW_PRICE),
+      COLLATERAL: config.COLLATERAL ?? (existing ? existing.COLLATERAL : DEFAULT_ORDER.COLLATERAL),
+      enabled: true
     };
-    this.log(`🎯 Order config set for ${subdomainId}/${symbol}: Price=${config.ORDER_PRICE}, Qty=${config.ORDER_QTY}`, 'info');
+    this.log(`🎯 Order config set for ${subdomainId}/${symbol}: Price=${this.orderQuantities[subdomainId][symbol].ORDER_PRICE}, Qty=${this.orderQuantities[subdomainId][symbol].ORDER_QTY}`, 'info');
     this.saveConfig();
   }
 
-  // Remove order quantity for a specific subdomain and symbol
+  // Disable order quantity for a specific subdomain and symbol (preserves config)
   removeOrderQuantity(subdomainId, symbol) {
-    if (this.orderQuantities[subdomainId]) {
-      delete this.orderQuantities[subdomainId][symbol];
-      if (Object.keys(this.orderQuantities[subdomainId]).length === 0) {
-        delete this.orderQuantities[subdomainId];
-      }
+    if (this.orderQuantities[subdomainId] && this.orderQuantities[subdomainId][symbol]) {
+      this.orderQuantities[subdomainId][symbol].enabled = false;
     }
-    this.log(`🎯 Removed ${symbol} from ${subdomainId}`, 'info');
+    this.log(`🎯 Disabled ${symbol} on ${subdomainId}`, 'info');
     this.saveConfig();
   }
 
@@ -341,13 +341,15 @@ class PriceMonitor {
   // Check if symbol is enabled for a subdomain
   isSymbolEnabled(subdomainId, symbol) {
     const subdomainConfig = this.orderQuantities[subdomainId] || {};
-    return symbol in subdomainConfig;
+    const symbolConfig = subdomainConfig[symbol];
+    if (!symbolConfig) return false;
+    return symbolConfig.enabled !== false; // enabled by default if flag missing
   }
 
   // Get all enabled symbols for a subdomain
   getEnabledSymbols(subdomainId) {
     const subdomainConfig = this.orderQuantities[subdomainId] || {};
-    return Object.keys(subdomainConfig);
+    return Object.keys(subdomainConfig).filter(sym => subdomainConfig[sym].enabled !== false);
   }
 
   // Get the orderQuantities key for a subdomain
@@ -641,10 +643,6 @@ class PriceMonitor {
   }
 
   async monitorLoop() {
-    let cycleCount = 0;
-    const loggedInOnce = new Set(); // Track which subdomains we've seen logged in
-
-    // Get subdomains by role
     const getPriceCheckSubdomains = () => this.subdomains.filter(s => s.enabled && (s.role === 'price' || s.role === 'both'));
     const getOrderPlaceSubdomains = () => this.subdomains.filter(s => s.enabled && (s.role === 'order' || s.role === 'both'));
 
@@ -655,11 +653,39 @@ class PriceMonitor {
     this.log(`   📊 Price Check: ${priceCheckCount} subdomains`, 'info');
     this.log(`   📦 Order Place: ${orderPlaceCount} subdomains`, 'info');
 
-    while (this.isMonitoring) {
-      cycleCount++;
-      const startTime = Date.now();
+    const truncatePrice = (val) => parseFloat((val).toFixed(3).slice(0, -2));
 
-      // Get subdomains for price checking only
+    // Per-scrip order state: tracks 2% levels, circuit, etc.
+    // Key: symbol, Value: { currentOrderPrice, nextOrderPrice, circuitAmount, pricesPlaced, done }
+    const scripStates = {};
+
+    // Initialize scrip states from enabled symbols on price-check subdomains
+    const priceSubdomains = getPriceCheckSubdomains();
+    for (const sub of priceSubdomains) {
+      const orderKey = this.getOrderKey(sub);
+      const enabledScrips = this.getEnabledSymbols(orderKey);
+      for (const symbol of enabledScrips) {
+        if (!scripStates[symbol]) {
+          const config = this.getOrderConfig(orderKey, symbol);
+          const circuitAmount = truncatePrice(config.ORDER_PRICE * 1.1);
+          scripStates[symbol] = {
+            config,
+            circuitAmount,
+            currentOrderPrice: null,
+            nextOrderPrice: null,
+            pricesPlaced: [],
+            done: false
+          };
+          this.log(`📊 ${symbol}: ORDER_PRICE=${config.ORDER_PRICE}, circuit=${circuitAmount}`, 'info');
+        }
+      }
+    }
+
+    const orderSubdomains = getOrderPlaceSubdomains();
+    this.log(`🚀 Monitoring ${Object.keys(scripStates).length} scrips, placing on ${orderSubdomains.length} order subdomains`, 'info');
+
+    // Main loop: price check on DYNAMIC44 (or other P subdomains), order on O subdomains
+    while (this.isMonitoring) {
       const subdomainsToCheck = getPriceCheckSubdomains();
 
       if (subdomainsToCheck.length === 0) {
@@ -668,104 +694,115 @@ class PriceMonitor {
         continue;
       }
 
-      this.log(`🔄 Cycle #${cycleCount}: Checking ${subdomainsToCheck.length} price-check subdomains`, 'info');
-      this.broadcast({ type: 'price_check' });
+      // Check all done
+      const allDone = Object.values(scripStates).every(s => s.done);
+      if (allDone) {
+        this.log('✅ All scrips reached circuit. Monitoring stopped.', 'success');
+        this.broadcast({ type: 'orders_complete', data: [] });
+        this.isMonitoring = false;
+        return;
+      }
 
-      // Round-robin: Check each price-check subdomain one by one
-      for (let i = 0; i < subdomainsToCheck.length; i++) {
-        const subdomain = subdomainsToCheck[i];
-
+      for (const subdomain of subdomainsToCheck) {
         if (!this.isMonitoring) break;
 
         try {
-          // No delay between subdomains - fire as fast as possible
-
           subdomain.status = 'checking';
-          this.broadcast({ type: 'subdomains', data: this.subdomains });
-
-          // Check price on this subdomain (with timing)
-          const fetchStart = Date.now();
           const price = await this.checkPrice(subdomain);
-          const fetchTimeMs = Date.now() - fetchStart;
-
-          // First successful check - log it
-          if (!loggedInOnce.has(subdomain.id)) {
-            loggedInOnce.add(subdomain.id);
-            this.log(`✅ ${subdomain.name} logged in and active`, 'success');
-          }
-
           subdomain.lastPrice = price;
           subdomain.lastCheck = new Date().toISOString();
-          subdomain.fetchTimeMs = fetchTimeMs;
           subdomain.status = 'idle';
 
-          // Attach target price from company config for the matched company
-          const company = subdomain.matchedCompany;
-          if (company && companiesConfig.companies[company]) {
-            subdomain.targetPrice = companiesConfig.companies[company].targetPrice;
-          }
+          // Process each scrip's LTP from the price check
+          const prices = subdomain.prices || {};
 
-          if (subdomain.prices && Object.keys(subdomain.prices).length > 0) {
-            const priceStrs = Object.entries(subdomain.prices)
-              .map(([sym, p]) => `${sym}:${p.ltp}${p.matched ? '*' : ''}`)
-              .join(' | ');
-            this.log(`💰 ${subdomain.name}: ${priceStrs} [${fetchTimeMs}ms]`, 'info');
-          } else {
-            const companyInfo = company ? ` [${company}]` : '';
-            this.log(`💰 ${subdomain.name}${companyInfo}: ${price} (target: ${subdomain.targetPrice || '-'}) [${fetchTimeMs}ms]`, 'info');
-          }
-          this.broadcast({ type: 'subdomains', data: this.subdomains });
+          for (const [symbol, priceInfo] of Object.entries(prices)) {
+            const state = scripStates[symbol];
+            if (!state || state.done) continue;
 
-          // Check if price matches target
-          if (this.checkPriceCondition(price) || subdomain.matched) {
-            const company = subdomain.matchedCompany || 'stock';
-            this.log(`🎯 PRICE MATCH on ${subdomain.name} for ${company}!`, 'success');
+            const ltp = priceInfo.ltp;
+            if (!ltp) continue;
 
-            // Store the matched company globally for all subdomains to use
-            this.matchedCompany = subdomain.matchedCompany;
+            if (state.currentOrderPrice === null) {
+              // First LTP → place order at LTP * 1.02
+              state.currentOrderPrice = truncatePrice(ltp * 1.02);
 
-            // Place orders ONLY on order-place subdomains
-            const orderSubdomains = this.subdomains.filter(s => s.enabled && (s.role === 'order' || s.role === 'both'));
-            if (orderSubdomains.length === 0) {
-              this.log(`⚠️  No order-enabled subdomains configured. Continuing to monitor...`, 'warning');
-            } else {
-              await this.placeOrdersOnOrderSubdomains(subdomain.matchedCompany);
-              // Stop monitoring after orders complete
-              this.isMonitoring = false;
-              this._monitorPromise = null;
-              this.log('✅ Orders complete, monitoring stopped. Browser left open for inspection.', 'success');
-              return;
+              if (state.currentOrderPrice >= state.circuitAmount) {
+                // Already at circuit
+                await this.placeOrderOnAllSubdomains(symbol, state.circuitAmount, state.config.MAX_ORDER_QTY, orderSubdomains);
+                state.pricesPlaced.push(state.circuitAmount);
+                state.done = true;
+                this.log(`[Circuit] ${symbol} @ ${state.circuitAmount} qty=${state.config.MAX_ORDER_QTY} → DONE`, 'success');
+                continue;
+              }
+
+              await this.placeOrderOnAllSubdomains(symbol, state.currentOrderPrice, state.config.ORDER_QTY, orderSubdomains);
+              state.pricesPlaced.push(state.currentOrderPrice);
+              state.nextOrderPrice = truncatePrice(state.currentOrderPrice * 1.02);
+              this.log(`[Order] ${symbol} @ ${state.currentOrderPrice} qty=${state.config.ORDER_QTY} → next: ${state.nextOrderPrice}`, 'info');
+
+            } else if (ltp >= state.currentOrderPrice) {
+              // LTP reached our order → place next
+
+              if (state.nextOrderPrice >= state.circuitAmount) {
+                // Place circuit order
+                await this.placeOrderOnAllSubdomains(symbol, state.circuitAmount, state.config.MAX_ORDER_QTY, orderSubdomains);
+                state.pricesPlaced.push(state.circuitAmount);
+                state.done = true;
+                this.log(`[Circuit] ${symbol} @ ${state.circuitAmount} qty=${state.config.MAX_ORDER_QTY} → DONE`, 'success');
+                continue;
+              }
+
+              state.currentOrderPrice = state.nextOrderPrice;
+              await this.placeOrderOnAllSubdomains(symbol, state.currentOrderPrice, state.config.ORDER_QTY, orderSubdomains);
+              state.pricesPlaced.push(state.currentOrderPrice);
+              state.nextOrderPrice = truncatePrice(state.currentOrderPrice * 1.02);
+              this.log(`[Order] ${symbol} @ ${state.currentOrderPrice} qty=${state.config.ORDER_QTY} → next: ${state.nextOrderPrice}`, 'info');
             }
           }
 
-        } catch (error) {
-          // If monitoring was stopped mid-check, exit silently
-          if (!this.isMonitoring) break;
+          this.broadcast({ type: 'subdomains', data: this.subdomains });
 
+        } catch (error) {
+          if (!this.isMonitoring) break;
           subdomain.status = 'error';
 
-          // If waiting for login, skip quickly (no delay) - just move to next subdomain
           if (error.message.includes('Waiting for login')) {
-            // Only log once per subdomain to avoid spam
             if (!subdomain._loginWarned) {
               this.log(`⏳ ${subdomain.name}: Not logged in yet, skipping...`, 'warning');
               subdomain._loginWarned = true;
             }
-            this.broadcast({ type: 'subdomains', data: this.subdomains });
             continue;
           }
-
           this.log(`❌ Error checking ${subdomain.name}: ${error.message}`, 'error');
-          this.broadcast({ type: 'subdomains', data: this.subdomains });
         }
       }
 
-      const cycleTimeMs = Date.now() - startTime;
-      this.log(`✅ Cycle #${cycleCount} complete in ${cycleTimeMs}ms (${(cycleTimeMs / 1000).toFixed(1)}s)`, 'info');
-      this.broadcast({ type: 'cycle_time', data: { cycle: cycleCount, timeMs: cycleTimeMs } });
-
-      // No delay - immediately start next rotation cycle
+      // No delay — loop immediately for fastest LTP polling
     }
+  }
+
+  // Place order on ALL order subdomains for a symbol at a specific price
+  async placeOrderOnAllSubdomains(symbol, price, qty, orderSubdomains) {
+    const promises = orderSubdomains.map(async (subdomain) => {
+      const orderKey = this.getOrderKey(subdomain);
+      if (!this.isSymbolEnabled(orderKey, symbol)) return null;
+
+      try {
+        const result = await this.orderService.placeOrder(subdomain, { symbol, price, qty });
+        if (result.success) {
+          this.log(`✅ ${subdomain.name}: ${symbol} @ ${price} qty=${qty}`, 'success');
+        } else {
+          this.log(`⚠️  ${subdomain.name}: ${symbol} @ ${price} - ${result.message || 'failed'}`, 'warning');
+        }
+        return result;
+      } catch (err) {
+        this.log(`❌ ${subdomain.name}: ${symbol} @ ${price} - ${err.message}`, 'error');
+        return null;
+      }
+    });
+
+    await Promise.allSettled(promises);
   }
 
   async checkPrice(subdomain) {
@@ -843,13 +880,15 @@ class PriceMonitor {
   async checkAtsPrice(subdomain) {
     const page = await this.browserService.getPage(subdomain.accountId, subdomain.url);
 
-    // Build list from orderQuantities for this subdomain (respects UI checkboxes)
+    // Build list from orderQuantities for this subdomain (only enabled symbols)
     const orderKey = this.getOrderKey(subdomain);
     const subdomainOrderConfig = this.orderQuantities[orderKey] || {};
-    let companies = Object.entries(subdomainOrderConfig).map(([symbol, config]) => ({
-      symbol,
-      target: config.ORDER_PRICE
-    }));
+    let companies = Object.entries(subdomainOrderConfig)
+      .filter(([_, config]) => config.enabled !== false)
+      .map(([symbol, config]) => ({
+        symbol,
+        target: config.ORDER_PRICE
+      }));
 
     // Fallback to central config if no per-subdomain config
     if (companies.length === 0) {
