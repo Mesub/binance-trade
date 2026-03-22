@@ -347,7 +347,7 @@
       "RSML": {
         "ORDER_QTY": 10,
         "MAX_ORDER_QTY": 1000,
-        "ORDER_PRICE": 684.8,
+        "ORDER_PRICE": 1250.1,
         "COLLATERAL": 500000
       },
       "HFIN": {
@@ -374,7 +374,7 @@
       "RSML": {
         "ORDER_QTY": 10,
         "MAX_ORDER_QTY": 1000,
-        "ORDER_PRICE": 893.3,
+        "ORDER_PRICE": 1250.1,
         "COLLATERAL": 500000
       },
       "HFIN": {

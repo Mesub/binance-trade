@@ -113,6 +113,17 @@ router.post('/browser/open', async (req, res) => {
   }
 });
 
+// Open a single account's browser tab (works while monitoring is running)
+router.post('/browser/open/:accountId', async (req, res) => {
+  const priceMonitor = req.app.get('priceMonitor');
+  try {
+    await priceMonitor.openSingleAccount(req.params.accountId);
+    res.json({ success: true, message: `Opened ${req.params.accountId}` });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Start monitoring
 router.post('/monitor/start', async (req, res) => {
   const priceMonitor = req.app.get('priceMonitor');

@@ -79,6 +79,7 @@ class PriceMonitor {
         existing.scriptId = account.tms;
         existing.type = type;
         existing.domain = account.domain;
+        existing.role = account.role || 'both';
         // Carry over ATS fields from account config
         if (account.broker) existing.broker = account.broker;
         if (account.acntid) existing.acntid = account.acntid;
@@ -86,6 +87,24 @@ class PriceMonitor {
         // Carry over credentials
         if (account.username) existing.username = account.username;
         if (account.password) existing.password = account.password;
+
+        // Merge scriptList into orderQuantities (overwrite with latest from companies.js)
+        if (account.scriptList && account.scriptList.length > 0) {
+          const orderKey = type === 'ats' ? accountId : account.tms;
+          if (!this.orderQuantities[orderKey]) {
+            this.orderQuantities[orderKey] = {};
+          }
+          for (const script of account.scriptList) {
+            this.orderQuantities[orderKey][script.symbol] = {
+              ORDER_QTY: script.ORDER_QTY,
+              MAX_ORDER_QTY: script.MAX_ORDER_QTY,
+              ORDER_PRICE: script.ORDER_PRICE,
+              BELOW_PRICE: (this.orderQuantities[orderKey][script.symbol] || {}).BELOW_PRICE || 0,
+              COLLATERAL: (this.orderQuantities[orderKey][script.symbol] || {}).COLLATERAL || 0,
+              enabled: true
+            };
+          }
+        }
         continue;
       }
 
@@ -495,6 +514,32 @@ class PriceMonitor {
     this.broadcast({ type: 'browser_opened' });
   }
 
+  // Open a single new account's browser tab (works while monitoring is running)
+  async openSingleAccount(accountId) {
+    const subdomain = this.subdomains.find(s => s.accountId === accountId);
+    if (!subdomain) throw new Error(`Account not found: ${accountId}`);
+
+    // Ensure browser is initialized
+    await this.browserService.initialize();
+
+    try {
+      await this.browserService.getPage(subdomain.accountId, subdomain.url);
+      this.log(`📄 Opened ${subdomain.name} — log in manually`, 'success');
+
+      if (subdomain.username && subdomain.password) {
+        await this.autoLogin(subdomain);
+      }
+    } catch (error) {
+      this.log(`⚠️ Failed to open ${subdomain.name}: ${error.message}`, 'warning');
+      throw error;
+    }
+
+    if (!this.browserOpen) {
+      this.browserOpen = true;
+      this.broadcast({ type: 'browser_opened' });
+    }
+  }
+
   async autoLogin(subdomain) {
     try {
       const page = await this.browserService.getPage(subdomain.accountId, subdomain.url);
@@ -646,6 +691,9 @@ class PriceMonitor {
     const getPriceCheckSubdomains = () => this.subdomains.filter(s => s.enabled && (s.role === 'price' || s.role === 'both'));
     const getOrderPlaceSubdomains = () => this.subdomains.filter(s => s.enabled && (s.role === 'order' || s.role === 'both'));
 
+    // Per-subdomain lock to prevent concurrent API requests (keepalive vs order)
+    this.busySubdomains = new Set();
+
     const priceCheckCount = getPriceCheckSubdomains().length;
     const orderPlaceCount = getOrderPlaceSubdomains().length;
 
@@ -659,33 +707,144 @@ class PriceMonitor {
     // Key: symbol, Value: { currentOrderPrice, nextOrderPrice, circuitAmount, pricesPlaced, done }
     const scripStates = {};
 
-    // Initialize scrip states from enabled symbols on price-check subdomains
-    const priceSubdomains = getPriceCheckSubdomains();
-    for (const sub of priceSubdomains) {
-      const orderKey = this.getOrderKey(sub);
-      const enabledScrips = this.getEnabledSymbols(orderKey);
-      for (const symbol of enabledScrips) {
-        if (!scripStates[symbol]) {
+    // Sync scripStates with live config — adds new symbols, updates changed prices, removes disabled ones
+    const syncScripStates = () => {
+      const priceSubdomains = getPriceCheckSubdomains();
+      const liveSymbols = new Set();
+
+      for (const sub of priceSubdomains) {
+        const orderKey = this.getOrderKey(sub);
+        const enabledScrips = this.getEnabledSymbols(orderKey);
+        for (const symbol of enabledScrips) {
+          liveSymbols.add(symbol);
           const config = this.getOrderConfig(orderKey, symbol);
           const circuitAmount = truncatePrice(config.ORDER_PRICE * 1.1);
-          scripStates[symbol] = {
-            config,
-            circuitAmount,
-            currentOrderPrice: null,
-            nextOrderPrice: null,
-            pricesPlaced: [],
-            done: false
-          };
-          this.log(`📊 ${symbol}: ORDER_PRICE=${config.ORDER_PRICE}, circuit=${circuitAmount}`, 'info');
+
+          if (!scripStates[symbol]) {
+            // New symbol added from UI
+            scripStates[symbol] = {
+              config,
+              circuitAmount,
+              currentOrderPrice: null,
+              nextOrderPrice: null,
+              pricesPlaced: [],
+              done: false
+            };
+            this.log(`📊 ${symbol}: ORDER_PRICE=${config.ORDER_PRICE}, circuit=${circuitAmount}`, 'info');
+          } else if (scripStates[symbol].config.ORDER_PRICE !== config.ORDER_PRICE) {
+            // ORDER_PRICE changed from UI — reset tracking for this symbol
+            const old = scripStates[symbol].config.ORDER_PRICE;
+            scripStates[symbol].config = config;
+            scripStates[symbol].circuitAmount = circuitAmount;
+            scripStates[symbol].currentOrderPrice = null;
+            scripStates[symbol].nextOrderPrice = null;
+            scripStates[symbol].pricesPlaced = [];
+            scripStates[symbol].done = false;
+            this.log(`🔄 ${symbol}: ORDER_PRICE changed ${old} → ${config.ORDER_PRICE}, circuit=${circuitAmount}`, 'info');
+          } else {
+            // Update qty fields (ORDER_QTY, MAX_ORDER_QTY) without resetting state
+            scripStates[symbol].config = config;
+          }
         }
       }
-    }
 
-    const orderSubdomains = getOrderPlaceSubdomains();
-    this.log(`🚀 Monitoring ${Object.keys(scripStates).length} scrips, placing on ${orderSubdomains.length} order subdomains`, 'info');
+      // Remove symbols that were disabled from UI
+      for (const symbol of Object.keys(scripStates)) {
+        if (!liveSymbols.has(symbol)) {
+          delete scripStates[symbol];
+          this.log(`🗑️ ${symbol}: removed (disabled from UI)`, 'info');
+        }
+      }
+    };
+
+    // Initial sync
+    syncScripStates();
+
+    this.log(`🚀 Monitoring ${Object.keys(scripStates).length} scrips, placing on ${getOrderPlaceSubdomains().length} order subdomains`, 'info');
+
+    // Order-only NEPSE subdomains — fetch NLO price on them to keep session alive
+    const getOrderOnlyNepseSubdomains = () => getOrderPlaceSubdomains().filter(s => s.role === 'order' && s.type === 'nepse');
+
+    const keepaliveCheck = async (subdomain) => {
+      if (this.busySubdomains.has(subdomain.accountId)) return; // skip if order in progress
+      try {
+        this.busySubdomains.add(subdomain.accountId);
+        const page = await this.browserService.getPage(subdomain.accountId, subdomain.url);
+        await page.evaluate(async () => {
+          var host = document.location.origin;
+          var referral = host + "/tms/me/memberclientorderentry";
+          function getCookie(name) {
+            var nameEQ = name + "=";
+            var ca = document.cookie.split(';');
+            for (var i = 0; i < ca.length; i++) {
+              var c = ca[i].trim();
+              if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length);
+            }
+            return null;
+          }
+          function getHeader() {
+            var xsrfToken = getCookie("XSRF-TOKEN") || "";
+            var authToken = localStorage.getItem("id_token");
+            var h = { "accept": "application/json, text/plain, */*" };
+            if (xsrfToken) h["x-xsrf-token"] = xsrfToken;
+            else if (authToken) h["Authorization"] = "Bearer " + authToken;
+            return h;
+          }
+          async function refreshToken() {
+            try {
+              var res = await fetch(host + "/tmsapi/authApi/authenticate/refresh", {
+                method: "POST", headers: getHeader(), referrer: referral,
+                referrerPolicy: "strict-origin-when-cross-origin", body: null, mode: "cors", credentials: "include"
+              });
+              var data = await res.json();
+              if (data.status === 200 && data.data) {
+                localStorage.setItem("id_token", data.data.access_token);
+                if (data.data.refresh_token) localStorage.setItem("refresh_token", data.data.refresh_token);
+              }
+              return true;
+            } catch(e) { return false; }
+          }
+          var securities = localStorage.getItem("__securities__");
+          if (!securities) return;
+          var scripList = JSON.parse(securities).data;
+          var scrip = scripList.find(function(s) { return s.symbol === 'NLO'; });
+          if (!scrip) return;
+          var header = getHeader();
+          var res = await fetch(host + "/tmsapi/rtApi/stock/validation/ohlc/" + scrip.id + "/" + scrip.isin, {
+            credentials: "include", headers: header, method: "GET"
+          });
+          var data = await res.json();
+          if (data.status === "401" || data.status === 401 || (data.status === "500" && data.level === "OAUTH")) {
+            await refreshToken();
+          }
+        });
+      } catch(e) {
+      } finally {
+        this.busySubdomains.delete(subdomain.accountId);
+      }
+    };
+
+    // Keepalive runs every 2 seconds, not every loop iteration
+    let lastKeepalive = 0;
+    const KEEPALIVE_INTERVAL = 2000;
 
     // Main loop: price check on DYNAMIC44 (or other P subdomains), order on O subdomains
     while (this.isMonitoring) {
+      // Re-sync scripStates with live config (picks up UI changes without restart)
+      syncScripStates();
+
+      // Re-read order subdomains each iteration (picks up role changes from UI)
+      const orderSubdomains = getOrderPlaceSubdomains();
+
+      // Fetch NLO price on order-only NEPSE TMS every 2s to keep sessions alive
+      const now = Date.now();
+      if (now - lastKeepalive >= KEEPALIVE_INTERVAL) {
+        lastKeepalive = now;
+        for (const subdomain of getOrderOnlyNepseSubdomains()) {
+          keepaliveCheck(subdomain);
+        }
+      }
+
       const subdomainsToCheck = getPriceCheckSubdomains();
 
       if (subdomainsToCheck.length === 0) {
@@ -694,8 +853,8 @@ class PriceMonitor {
         continue;
       }
 
-      // Check all done
-      const allDone = Object.values(scripStates).every(s => s.done);
+      // Check all done (but not if scripStates is empty — user may add symbols from UI)
+      const allDone = Object.keys(scripStates).length > 0 && Object.values(scripStates).every(s => s.done);
       if (allDone) {
         this.log('✅ All scrips reached circuit. Monitoring stopped.', 'success');
         this.broadcast({ type: 'orders_complete', data: [] });
@@ -788,17 +947,26 @@ class PriceMonitor {
       const orderKey = this.getOrderKey(subdomain);
       if (!this.isSymbolEnabled(orderKey, symbol)) return null;
 
+      // Wait for any in-flight keepalive to finish before placing order
+      while (this.busySubdomains && this.busySubdomains.has(subdomain.accountId)) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+
       try {
+        if (this.busySubdomains) this.busySubdomains.add(subdomain.accountId);
         const result = await this.orderService.placeOrder(subdomain, { symbol, price, qty });
         if (result.success) {
           this.log(`✅ ${subdomain.name}: ${symbol} @ ${price} qty=${qty}`, 'success');
         } else {
-          this.log(`⚠️  ${subdomain.name}: ${symbol} @ ${price} - ${result.message || 'failed'}`, 'warning');
+          const errMsg = result.message || (result.response && (result.response.message || result.response.statusMessage || JSON.stringify(result.response).substring(0, 200))) || 'failed';
+          this.log(`⚠️  ${subdomain.name}: ${symbol} @ ${price} - ${errMsg}`, 'warning');
         }
         return result;
       } catch (err) {
         this.log(`❌ ${subdomain.name}: ${symbol} @ ${price} - ${err.message}`, 'error');
         return null;
+      } finally {
+        if (this.busySubdomains) this.busySubdomains.delete(subdomain.accountId);
       }
     });
 

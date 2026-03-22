@@ -47,22 +47,40 @@ class OrderService {
         return { success: false, message: 'Session not found' };
       }
 
-      var xsrfToken = getCookie("XSRF-TOKEN") || "";
-      var authToken = localStorage.getItem("id_token");
       var suid = localStorage.getItem("suid");
       var hostSessionId = suid ? btoa(suid) : "";
       var requestOwner = usrSession.user.id;
 
-      var header = {
-        "accept": "application/json, text/plain, */*",
-        "content-type": "application/json",
-        "host-session-id": hostSessionId,
-        "request-owner": requestOwner,
-        "x-xsrf-token": xsrfToken
-      };
-      if (!xsrfToken && authToken) {
-        delete header["x-xsrf-token"];
-        header["Authorization"] = "Bearer " + authToken;
+      function getHeader() {
+        var xsrfToken = getCookie("XSRF-TOKEN") || "";
+        var authToken = localStorage.getItem("id_token");
+        var h = {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "host-session-id": hostSessionId,
+          "request-owner": requestOwner
+        };
+        if (xsrfToken) {
+          h["x-xsrf-token"] = xsrfToken;
+        } else if (authToken) {
+          h["Authorization"] = "Bearer " + authToken;
+        }
+        return h;
+      }
+
+      async function refreshToken() {
+        try {
+          var res = await fetch(host + "/tmsapi/authApi/authenticate/refresh", {
+            method: "POST", headers: getHeader(), referrer: referral,
+            referrerPolicy: "strict-origin-when-cross-origin", body: null, mode: "cors", credentials: "include"
+          });
+          var data = await res.json();
+          if (data.status === 200 && data.data) {
+            localStorage.setItem("id_token", data.data.access_token);
+            if (data.data.refresh_token) localStorage.setItem("refresh_token", data.data.refresh_token);
+          }
+          return true;
+        } catch(e) { return false; }
       }
 
       var totalScripList = JSON.parse(securities).data;
@@ -100,6 +118,7 @@ class OrderService {
       };
 
       try {
+        var header = getHeader();
         var res = await fetch(orderBookUrl, {
           credentials: "include", headers: header, referrer: referral,
           body: JSON.stringify(body), method: "POST", mode: "cors"
@@ -107,6 +126,21 @@ class OrderService {
         var text = await res.text();
         try {
           var data = JSON.parse(text);
+
+          // Handle 401 or 500 OAUTH — refresh token and retry once
+          if (data.status === "401" || data.status === 401 || (data.status === "500" && data.level === "OAUTH")) {
+            var refreshed = await refreshToken();
+            if (refreshed) {
+              header = getHeader();
+              res = await fetch(orderBookUrl, {
+                credentials: "include", headers: header, referrer: referral,
+                body: JSON.stringify(body), method: "POST", mode: "cors"
+              });
+              text = await res.text();
+              data = JSON.parse(text);
+            }
+          }
+
           return { success: data.status === "200" || data.status === 200, symbol: config.symbol, price: config.price, qty: config.qty, response: data };
         } catch (e) {
           return { success: false, symbol: config.symbol, message: text.substring(0, 300) };

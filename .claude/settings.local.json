@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npx playwright install:*)",
       "Bash(dir:*)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(node:*)"
     ]
   }
 }

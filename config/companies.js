@@ -15,13 +15,18 @@ module.exports = {
         },
         'RSML': {
             enabled: true,
-            targetPrice: 675.3,
+            targetPrice: 939.3,
             qty: 50
         },
-        'SABBL': {
-            enabled: false,
-            targetPrice: 712.8,
-            qty: 10
+        'SOHL': {
+            enabled: true,
+            targetPrice: 330.0,
+            qty: 50
+        },
+        'HFIN': {
+            enabled: true,
+            targetPrice: 122.9,
+            qty: 50
         }
     },
 
@@ -41,23 +46,25 @@ module.exports = {
          { name: 'TMS18', tms: 'tms18', domain: 'nepsetms.com.np', type: 'nepse', role: 'order', username: '', password: '',
           scriptList: [
               { symbol: 'NLO', ORDER_QTY: 50, MAX_ORDER_QTY: 1000, ORDER_PRICE: 269.4 },
-              { symbol: 'RSML', ORDER_QTY: 50, MAX_ORDER_QTY: 2500, ORDER_PRICE: 675.3 },
-              { symbol: 'SABBL', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 712.8 }
+              { symbol: 'RSML', ORDER_QTY: 50, MAX_ORDER_QTY: 500, ORDER_PRICE: 1250.1 },
+              { symbol: 'BJHL', ORDER_QTY: 10, MAX_ORDER_QTY: 2000, ORDER_PRICE: 330.0 },
+              { symbol: 'HFIN', ORDER_QTY: 50, MAX_ORDER_QTY: 500, ORDER_PRICE: 122.9 }
           ]
         },
         // { name: 'TMS32', tms: 'tms32', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
         // { name: 'TMS34', tms: 'tms34', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
         // { name: 'TMS35', tms: 'tms35', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
         // { name: 'TMS41', tms: 'tms41', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
-        // { name: 'TMS45', tms: 'tms45', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
-        // { name: 'TMS55', tms: 'tms55', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
-         { name: 'TMS57', tms: 'tms57', domain: 'nepsetms.com.np', type: 'nepse', role: 'order', username: '', password: '',
+         { name: 'TMS45', tms: 'tms45', domain: 'nepsetms.com.np', type: 'nepse', role: 'order', username: '', password: '',
           scriptList: [
               { symbol: 'NLO', ORDER_QTY: 50, MAX_ORDER_QTY: 1000, ORDER_PRICE: 269.4 },
-              { symbol: 'RSML', ORDER_QTY: 50, MAX_ORDER_QTY: 2500, ORDER_PRICE: 675.3 },
-              { symbol: 'SABBL', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 712.8 }
+              { symbol: 'RSML', ORDER_QTY: 50, MAX_ORDER_QTY: 500, ORDER_PRICE: 1250.1 },
+              { symbol: 'SOHL', ORDER_QTY: 10, MAX_ORDER_QTY: 2000, ORDER_PRICE: 330.0 },
+              { symbol: 'HFIN', ORDER_QTY: 10, MAX_ORDER_QTY: 500, ORDER_PRICE: 122.9 }
           ]
         },
+        // { name: 'TMS55', tms: 'tms55', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
+        // { name: 'TMS57', tms: 'tms57', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
         // { name: 'TMS59', tms: 'tms59', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
         // { name: 'TMS61', tms: 'tms61', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
         // { name: 'TMS63', tms: 'tms63', domain: 'nepsetms.com.np', type: 'nepse', role: 'both', username: '', password: '' },
@@ -110,9 +117,10 @@ module.exports = {
           username: '', password: '',
           broker: 'NSH', acntid: '40177', clientAcc: '202103102056673 ( TIKARAM DAHAL-)',
           scriptList: [
-              { symbol: 'RSML', ORDER_QTY: 50, MAX_ORDER_QTY: 400, ORDER_PRICE: 675.3 },
-              { symbol: 'SABBL', ORDER_QTY: 10, MAX_ORDER_QTY: 200, ORDER_PRICE: 712.8 },
-              { symbol: 'NLO', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 269.4 }
+              { symbol: 'RSML', ORDER_QTY: 50, MAX_ORDER_QTY: 500, ORDER_PRICE: 1250.1 },
+              { symbol: 'NLO', ORDER_QTY: 10, MAX_ORDER_QTY: 1000, ORDER_PRICE: 269.4 },
+              { symbol: 'SOHL', ORDER_QTY: 50, MAX_ORDER_QTY: 2000, ORDER_PRICE: 330.0 },
+              { symbol: 'HFIN', ORDER_QTY: 50, MAX_ORDER_QTY: 500, ORDER_PRICE: 122.9 }
           ]
         },
     ]

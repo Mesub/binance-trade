@@ -306,6 +306,22 @@ class PriceMonitorApp {
     }
   }
 
+  async openSingleAccount(accountId) {
+    try {
+      const res = await fetch(`/api/browser/open/${encodeURIComponent(accountId)}`, { method: 'POST' });
+      const result = await res.json();
+      if (result.success) {
+        this.browserOpen = true;
+        this.updateButtonStates();
+        this.addLog(`Opened ${accountId} — log in manually`, 'success');
+      } else {
+        this.addLog(`Error: ${result.error}`, 'error');
+      }
+    } catch (error) {
+      this.addLog(`Error opening ${accountId}`, 'error');
+    }
+  }
+
   async removeSubdomain(id) {
     if (!confirm('Remove this subdomain?')) return;
 
@@ -476,6 +492,7 @@ class PriceMonitorApp {
             </label>
           </div>
           <div class="subdomain-actions">
+            <button class="btn btn-small" onclick="app.openSingleAccount('${subdomain.accountId}')" title="Open browser tab">&#9654;</button>
             <button class="btn btn-danger btn-small" onclick="app.removeSubdomain('${subdomain.id}')">X</button>
           </div>
         </div>
@@ -521,11 +538,50 @@ function getCookie(name) {
     return null;
 }
 
+function getHeader() {
+    var xsrfToken = getCookie("XSRF-TOKEN") || "";
+    var authToken = localStorage.getItem("id_token");
+    var header = { "accept": "application/json, text/plain, */*" };
+    if (xsrfToken) {
+        header["x-xsrf-token"] = xsrfToken;
+    } else if (authToken) {
+        header["Authorization"] = "Bearer " + authToken;
+    }
+    return header;
+}
+
+async function refreshToken() {
+    try {
+        var host = document.location.origin;
+        var referral = host + "/tms/me/memberclientorderentry";
+        var res = await fetch(host + "/tmsapi/authApi/authenticate/refresh", {
+            method: "POST",
+            headers: getHeader(),
+            referrer: referral,
+            referrerPolicy: "strict-origin-when-cross-origin",
+            body: null,
+            mode: "cors",
+            credentials: "include"
+        });
+        var data = await res.json();
+        if (data.status === 200 && data.data) {
+            localStorage.setItem("id_token", data.data.access_token);
+            if (data.data.refresh_token) localStorage.setItem("refresh_token", data.data.refresh_token);
+            return true;
+        }
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
 async function checkPrices() {
     var host = document.location.origin;
 
     // Get scrip list from localStorage (same as your original code)
     var totalScripList = JSON.parse(localStorage.getItem("__securities__")).data;
+
+    var header = getHeader();
 
     var lastSymbol = null;
     var lastLtp = 0;
@@ -547,13 +603,30 @@ async function checkPrices() {
 
             var res = await fetch(url, {
                 credentials: "include",
-                headers: {
-                    "accept": "application/json, text/plain, */*",
-                    "x-xsrf-token": getCookie("XSRF-TOKEN") || ""
-                }
+                headers: header
             });
 
             var data = await res.json();
+
+            // Handle 401 — refresh token and retry once
+            if (data.status === "401" || data.status === 401) {
+                var refreshed = await refreshToken();
+                if (refreshed) {
+                    header = getHeader();
+                    res = await fetch(url, { credentials: "include", headers: header });
+                    data = await res.json();
+                }
+            }
+
+            // Handle 500 OAUTH — refresh token and retry once
+            if (data.status === "500" && data.level === "OAUTH") {
+                var refreshed = await refreshToken();
+                if (refreshed) {
+                    header = getHeader();
+                    res = await fetch(url, { credentials: "include", headers: header });
+                    data = await res.json();
+                }
+            }
 
             if (data.status === "200" && data.data && data.data.ltp) {
                 var ltp = parseFloat(data.data.ltp);
