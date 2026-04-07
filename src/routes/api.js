@@ -169,6 +169,16 @@ router.delete('/logs', (req, res) => {
 router.post('/company-config', (req, res) => {
   const priceMonitor = req.app.get('priceMonitor');
   priceMonitor.companyConfig = req.body;
+
+  // Sync enabled state in central config so subdomain filtering works
+  const companiesConfig = require('../../config/companies');
+  for (const [symbol, config] of Object.entries(req.body)) {
+    if (companiesConfig.companies[symbol]) {
+      companiesConfig.companies[symbol].enabled = config.enabled;
+    }
+  }
+  priceMonitor.syncSubdomainEnabledState();
+
   priceMonitor.saveConfig();
   res.json({ success: true, message: 'Company config saved' });
 });

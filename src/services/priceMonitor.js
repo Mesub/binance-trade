@@ -157,9 +157,32 @@ class PriceMonitor {
       }
     }
 
+    // Disable subdomains whose scriptList has no enabled companies
+    this.syncSubdomainEnabledState();
+
     if (added > 0) {
       this.log(`🔄 Built ${added} subdomains from accounts config (${accounts.length} total accounts)`, 'success');
       this.saveConfig();
+    }
+  }
+
+  // Sync subdomain enabled state based on whether any of its symbols are enabled in companiesConfig
+  syncSubdomainEnabledState() {
+    const enabledCompanies = new Set(
+      Object.entries(companiesConfig.companies)
+        .filter(([_, config]) => config.enabled)
+        .map(([symbol]) => symbol)
+    );
+
+    for (const subdomain of this.subdomains) {
+      const orderKey = subdomain.type === 'ats' ? subdomain.accountId : subdomain.scriptId;
+      const symbols = Object.keys(this.orderQuantities[orderKey] || {});
+
+      if (symbols.length > 0) {
+        // Has scriptList — enable only if at least one symbol is enabled
+        subdomain.enabled = symbols.some(s => enabledCompanies.has(s));
+      }
+      // If no scriptList, keep current enabled state (manual control)
     }
   }
 

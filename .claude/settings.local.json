@@ -4,7 +4,12 @@
       "Bash(npx playwright install:*)",
       "Bash(dir:*)",
       "Bash(cd:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(where.exe code:*)",
+      "Read(//c/Program Files/Microsoft VS Code/bin/**)",
+      "Read(//c/Users/Susam/AppData/Local/Programs/Microsoft VS Code/bin/**)",
+      "Bash(/c/Users/Susam/AppData/Local/Programs/Microsoft VS Code/bin/code .:*)",
+      "Bash(powershell:*)"
     ]
   }
 }
