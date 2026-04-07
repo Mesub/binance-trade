@@ -9,118 +9,107 @@
 <body>
   <div class="container">
     <header>
-      <h1>TMS Price Monitor & Order Bot</h1>
-      <div class="status-indicator" id="statusIndicator">
-        <span class="status-dot"></span>
-        <span id="statusText">Idle</span>
+      <h1>TMS Monitor</h1>
+      <div class="header-right">
+        <div class="controls-inline">
+          <button onclick="app.openTMS()" id="openTmsBtn" class="btn btn-primary">1. Open TMS</button>
+          <button onclick="app.startMonitoring()" id="startBtn" class="btn btn-success" disabled>2. Start</button>
+          <button onclick="app.stopMonitoring()" id="stopBtn" class="btn btn-danger" disabled>Stop</button>
+          <button onclick="app.closeBrowser()" id="closeBtn" class="btn btn-secondary" disabled>Close TMS</button>
+        </div>
+        <div class="status-indicator" id="statusIndicator">
+          <span class="status-dot"></span>
+          <span id="statusText">Idle</span>
+        </div>
       </div>
     </header>
 
-    <div class="dashboard-grid">
-      <!-- Configuration Panel -->
-      <section class="panel config-panel">
-        <h2>Configuration</h2>
+    <!-- Top Bar: Companies + Stats -->
+    <div class="top-bar">
+      <div class="companies-bar" id="companiesConfig">
+        <!-- Companies loaded dynamically -->
+      </div>
+      <div class="stats-bar">
+        <span id="priceCheckCount" class="stat-badge price">P: 0</span>
+        <span id="orderPlaceCount" class="stat-badge order">O: 0</span>
+        <span id="cycleTime" class="stat-badge cycle">Cycle: -</span>
+      </div>
+    </div>
 
-        <div class="config-section">
-          <h3>Companies to Monitor</h3>
-          <div class="companies-config" id="companiesConfig">
-            <!-- Companies loaded dynamically from config/companies.js -->
+    <!-- Main Content -->
+    <div class="main-grid">
+      <!-- Accounts Table -->
+      <section class="panel accounts-panel">
+        <div class="panel-header">
+          <h2>Accounts</h2>
+          <div class="panel-actions">
+            <button onclick="app.checkAll('price', true)" class="btn btn-xs" title="Enable price check on all">All P</button>
+            <button onclick="app.checkAll('price', false)" class="btn btn-xs" title="Disable price check on all">No P</button>
+            <button onclick="app.checkAll('order', true)" class="btn btn-xs" title="Enable order on all">All O</button>
+            <button onclick="app.checkAll('order', false)" class="btn btn-xs" title="Disable order on all">No O</button>
+            <button onclick="app.toggleAddForm()" class="btn btn-xs btn-primary" id="toggleAddBtn">+ Add</button>
           </div>
-          <button onclick="app.saveCompanyConfig()" class="btn btn-primary">Save Company Config</button>
         </div>
 
-        <div class="config-section">
-          <h3>Scripts</h3>
-          <div class="script-buttons">
-            <button onclick="app.loadDefaultPriceScript()" class="btn btn-secondary">Load Price Check Script</button>
-            <button onclick="app.loadDefaultOrderScript()" class="btn btn-secondary">Load Order Script</button>
+        <!-- Collapsible Add Form -->
+        <div id="addAccountForm" class="add-form" style="display:none;">
+          <div class="add-form-grid">
+            <input type="text" id="subdomainTms" placeholder="TMS (e.g., tms13)">
+            <select id="subdomainDomain">
+              <option value="nepsetms.com.np">nepsetms.com.np</option>
+              <option value="__custom__">Custom...</option>
+            </select>
+            <input type="text" id="subdomainDomainCustom" placeholder="Custom domain" style="display:none;">
+            <input type="text" id="subdomainName" placeholder="Name">
+            <select id="subdomainRole">
+              <option value="both">Both</option>
+              <option value="price">Price</option>
+              <option value="order">Order</option>
+            </select>
+            <select id="subdomainType" onchange="app.toggleAtsFields()">
+              <option value="nepse">NEPSE</option>
+              <option value="ats">ATS</option>
+            </select>
+            <button onclick="app.addSubdomain()" class="btn btn-primary">Add</button>
           </div>
-          <details>
-            <summary>Price Check Script (Advanced)</summary>
-            <textarea id="priceScript" rows="4"></textarea>
-            <button onclick="app.setPriceScript()" class="btn btn-primary">Save Script</button>
-          </details>
-          <details>
-            <summary>Order Placement Script (Advanced)</summary>
-            <textarea id="orderScript" rows="4"></textarea>
-            <button onclick="app.setOrderScript()" class="btn btn-primary">Save Script</button>
-          </details>
-        </div>
-
-        <div class="controls">
-          <button onclick="app.openTMS()" id="openTmsBtn" class="btn btn-primary btn-large">1. Open TMS</button>
-          <button onclick="app.startMonitoring()" id="startBtn" class="btn btn-success btn-large" disabled>2. Start</button>
-          <button onclick="app.stopMonitoring()" id="stopBtn" class="btn btn-danger btn-large" disabled>Stop</button>
-        </div>
-      </section>
-
-      <!-- Accounts Panel -->
-      <section class="panel subdomains-panel">
-        <h2>Accounts Configuration</h2>
-
-        <div class="order-summary-bar">
-          <span class="order-summary-label">Order Config:</span>
-          <span id="orderSummary"><span class="order-tag none">No order config</span></span>
-        </div>
-
-        <div class="subdomain-legend">
-          <span class="legend-item"><span class="dot price-check"></span> Price Check</span>
-          <span class="legend-item"><span class="dot order-place"></span> Order Place</span>
-          <span class="legend-item"><span class="dot both"></span> Both</span>
-        </div>
-
-        <div class="add-subdomain">
-          <input type="text" id="subdomainTms" placeholder="TMS (e.g., tms13)">
-          <select id="subdomainDomain">
-            <option value="nepsetms.com.np">nepsetms.com.np</option>
-            <option value="__custom__">Custom...</option>
-          </select>
-          <input type="text" id="subdomainDomainCustom" placeholder="Custom domain" style="display:none;">
-          <input type="text" id="subdomainName" placeholder="Name (e.g., TMS13)">
-          <select id="subdomainRole">
-            <option value="both">Both (Price + Order)</option>
-            <option value="price">Price Check Only</option>
-            <option value="order">Order Place Only</option>
-          </select>
-          <select id="subdomainType" onchange="app.toggleAtsFields()">
-            <option value="nepse">NEPSE TMS</option>
-            <option value="ats">ATS</option>
-          </select>
           <div id="atsInlineFields" style="display:none;">
-            <input type="text" id="subdomainBroker" placeholder="Broker (e.g., NSH)">
+            <input type="text" id="subdomainBroker" placeholder="Broker">
             <input type="text" id="subdomainAcntid" placeholder="Account ID">
             <input type="text" id="subdomainClientAcc" placeholder="Client Account">
           </div>
-          <button onclick="app.addSubdomain()" class="btn btn-primary">Add</button>
         </div>
 
-        <div class="bulk-actions">
-          <button onclick="app.syncSubdomains()" class="btn btn-primary btn-small">Sync from Order Config</button>
-          <button onclick="app.checkAll('price', true)" class="btn btn-secondary btn-small">&#9745; All P</button>
-          <button onclick="app.checkAll('price', false)" class="btn btn-secondary btn-small">&#9744; All P</button>
-          <button onclick="app.checkAll('order', true)" class="btn btn-secondary btn-small">&#9745; All O</button>
-          <button onclick="app.checkAll('order', false)" class="btn btn-secondary btn-small">&#9744; All O</button>
-        </div>
-
-        <div id="subdomainsList" class="subdomains-list">
-          <!-- Accounts will be dynamically loaded here -->
+        <div id="subdomainsList" class="accounts-table">
+          <!-- Accounts rendered here -->
         </div>
       </section>
 
-      <!-- Logs Panel -->
+      <!-- Logs -->
       <section class="panel logs-panel">
-        <h2>Logs</h2>
-        <div class="logs-header">
-          <span id="priceCheckCount">Price Check: 0</span>
-          <span id="orderPlaceCount">Order Place: 0</span>
-          <span id="cycleTime">Cycle: -</span>
-          <button onclick="app.clearLogs()" class="btn btn-secondary btn-small">Clear Logs</button>
+        <div class="panel-header">
+          <h2>Logs</h2>
+          <button onclick="app.clearLogs()" class="btn btn-xs">Clear</button>
         </div>
-        <div id="logsList" class="logs-list">
-          <!-- Logs will be dynamically added here -->
-        </div>
+        <div id="logsList" class="logs-list"></div>
       </section>
     </div>
+
+    <!-- Scripts (hidden by default) -->
+    <details class="scripts-section">
+      <summary>Advanced: Scripts</summary>
+      <div class="scripts-grid">
+        <div>
+          <button onclick="app.loadDefaultPriceScript()" class="btn btn-secondary btn-small">Load Price Script</button>
+          <textarea id="priceScript" rows="4"></textarea>
+          <button onclick="app.setPriceScript()" class="btn btn-primary btn-small">Save</button>
+        </div>
+        <div>
+          <button onclick="app.loadDefaultOrderScript()" class="btn btn-secondary btn-small">Load Order Script</button>
+          <textarea id="orderScript" rows="4"></textarea>
+          <button onclick="app.setOrderScript()" class="btn btn-primary btn-small">Save</button>
+        </div>
+      </div>
+    </details>
   </div>
 
   <script src="/js/app.js"></script>

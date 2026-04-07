@@ -25,6 +25,12 @@ class PriceMonitor {
     this.isMonitoring = false;
     this.browserOpen = false;
     this.browserService = new BrowserService();
+    this.browserService.onDisconnected = () => {
+      this.isMonitoring = false;
+      this.browserOpen = false;
+      this.log('Browser was closed manually', 'warning');
+      this.broadcast({ type: 'browser_closed' });
+    };
     this.orderService = new OrderService(this.browserService);
     this.logs = [];
     this.configFile = path.join(__dirname, '../../config/config.json');
@@ -44,8 +50,9 @@ class PriceMonitor {
       const data = await fs.readFile(this.configFile, 'utf8');
       const config = JSON.parse(data);
       this.subdomains = config.subdomains || [];
-      this.priceCheckScript = config.priceCheckScript || '';
-      this.orderScript = config.orderScript || '';
+      // Don't restore saved scripts — they are auto-generated from current company config
+      this.priceCheckScript = '';
+      this.orderScript = '';
       this.priceTarget = config.priceTarget || null;
       this.priceCondition = config.priceCondition || 'lte';
       this.orderQuantities = config.orderQuantities || {};
@@ -62,6 +69,15 @@ class PriceMonitor {
   buildSubdomainsFromAccounts() {
     const accounts = companiesConfig.accounts || [];
     let added = 0;
+
+    // Remove stale subdomains not in companies.js accounts
+    const accountNames = new Set(accounts.map(a => a.name));
+    const before = this.subdomains.length;
+    this.subdomains = this.subdomains.filter(s => accountNames.has(s.accountId));
+    const removed = before - this.subdomains.length;
+    if (removed > 0) {
+      this.log(`🧹 Removed ${removed} stale account(s) not in companies.js`, 'info');
+    }
 
     for (const account of accounts) {
       const accountId = account.name;
@@ -166,7 +182,8 @@ class PriceMonitor {
     }
   }
 
-  // Sync subdomain enabled state based on whether any of its symbols are enabled in companiesConfig
+  // Sync subdomain enabled state: only AUTO-DISABLE accounts with no enabled symbols.
+  // Never auto-enable — respect manual disable from the user.
   syncSubdomainEnabledState() {
     const enabledCompanies = new Set(
       Object.entries(companiesConfig.companies)
@@ -179,10 +196,12 @@ class PriceMonitor {
       const symbols = Object.keys(this.orderQuantities[orderKey] || {});
 
       if (symbols.length > 0) {
-        // Has scriptList — enable only if at least one symbol is enabled
-        subdomain.enabled = symbols.some(s => enabledCompanies.has(s));
+        const hasEnabledSymbol = symbols.some(s => enabledCompanies.has(s));
+        // Only disable if no enabled symbols — never force-enable
+        if (!hasEnabledSymbol) {
+          subdomain.enabled = false;
+        }
       }
-      // If no scriptList, keep current enabled state (manual control)
     }
   }
 
@@ -501,7 +520,41 @@ class PriceMonitor {
     return { added, total: keys.length };
   }
 
+  async closeBrowser() {
+    // Stop monitoring first if running
+    if (this.isMonitoring) {
+      this.isMonitoring = false;
+      if (this._monitorPromise) {
+        await this._monitorPromise;
+        this._monitorPromise = null;
+      }
+    }
+
+    await this.browserService.close();
+    this.browserOpen = false;
+    this.log('Browser closed', 'success');
+    this.broadcast({ type: 'browser_closed' });
+  }
+
   async openBrowser() {
+    // If browser reference is stale (user manually closed window), reset state
+    if (this.browserOpen && this.browserService.browser) {
+      try {
+        // Check if browser is still connected
+        if (!this.browserService.browser.isConnected()) {
+          this.browserOpen = false;
+          this.browserService.browser = null;
+          this.browserService.pages.clear();
+          this.browserService.contexts.clear();
+        }
+      } catch (e) {
+        this.browserOpen = false;
+        this.browserService.browser = null;
+        this.browserService.pages.clear();
+        this.browserService.contexts.clear();
+      }
+    }
+
     if (this.browserOpen) {
       throw new Error('Browser is already open');
     }
@@ -830,7 +883,8 @@ class PriceMonitor {
           var securities = localStorage.getItem("__securities__");
           if (!securities) return;
           var scripList = JSON.parse(securities).data;
-          var scrip = scripList.find(function(s) { return s.symbol === 'NLO'; });
+          // Use first available scrip for keepalive ping
+          var scrip = scripList[0];
           if (!scrip) return;
           var header = getHeader();
           var res = await fetch(host + "/tmsapi/rtApi/stock/validation/ohlc/" + scrip.id + "/" + scrip.isin, {
@@ -1014,32 +1068,7 @@ class PriceMonitor {
       throw new Error('Waiting for login... Please log in to the TMS portal');
     }
 
-    // Extract TMS session headers from localStorage for API authentication
-    // (suid → host-session-id, __usrsession__.user.id → request-owner)
-    const sessionHeaders = await page.evaluate(() => {
-      var memberCode = (document.location.hostname.match(/tms(\d+)/) || [])[1] || '';
-      var hostSessionId = '';
-      var requestOwner = '';
-      try {
-        var suid = localStorage.getItem("suid");
-        if (suid) hostSessionId = btoa(suid);
-      } catch(e) {}
-      try {
-        var session = JSON.parse(localStorage.getItem("__usrsession__"));
-        if (session && session.user) requestOwner = session.user.id.toString();
-      } catch(e) {}
-      return { memberCode, hostSessionId, requestOwner };
-    });
-
-    if (sessionHeaders.hostSessionId) {
-      page.__tmsHeaders = {
-        'membercode': sessionHeaders.memberCode,
-        'host-session-id': sessionHeaders.hostSessionId,
-        'request-owner': sessionHeaders.requestOwner
-      };
-    }
-
-    // Execute the user's price check script
+    // Execute the user's price check script (script builds its own headers from localStorage)
     const result = await page.evaluate(async ({ script, scriptId }) => {
       // Create an async function from the script and execute it
       const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;

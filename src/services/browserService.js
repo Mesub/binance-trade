@@ -18,6 +18,15 @@ class BrowserService {
       args: ['--start-maximized']
     });
 
+    // Detect when user manually closes the browser window
+    this.browser.on('disconnected', () => {
+      console.log('Browser disconnected (manually closed or crashed)');
+      this.browser = null;
+      this.pages.clear();
+      this.contexts.clear();
+      if (this.onDisconnected) this.onDisconnected();
+    });
+
     console.log('✅ Browser launched (visible mode for manual login)');
   }
 
@@ -48,28 +57,6 @@ class BrowserService {
     const context = await this.getContext(accountId);
     const page = await context.newPage();
 
-    // Intercept /tmsapi/ requests to inject TMS session headers.
-    // Headers are populated by priceMonitor.checkPrice() from localStorage
-    // (suid → host-session-id, __usrsession__ → request-owner).
-    page.__tmsHeaders = {};
-    await page.route('**/tmsapi/**', async (route) => {
-      const reqHeaders = route.request().headers();
-
-      // If request already has session headers (Angular app), just pass through
-      if (reqHeaders['host-session-id']) {
-        await route.continue();
-        return;
-      }
-
-      // Inject stored headers into requests that don't have them (our scripts)
-      if (page.__tmsHeaders['host-session-id']) {
-        const headers = { ...reqHeaders, ...page.__tmsHeaders };
-        await route.continue({ headers });
-      } else {
-        await route.continue();
-      }
-    });
-
     // Navigate to the URL
     try {
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
@@ -78,6 +65,7 @@ class BrowserService {
       throw error;
     }
 
+    // Store page reference (no route interception — scripts build their own headers)
     this.pages.set(accountId, page);
     return page;
   }

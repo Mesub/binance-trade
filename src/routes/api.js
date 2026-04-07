@@ -124,6 +124,31 @@ router.post('/browser/open/:accountId', async (req, res) => {
   }
 });
 
+// Close browser (stops monitoring if running, then closes browser)
+router.post('/browser/close', async (req, res) => {
+  const priceMonitor = req.app.get('priceMonitor');
+  try {
+    await priceMonitor.closeBrowser();
+    res.json({ success: true, message: 'Browser closed' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Toggle subdomain enabled/disabled
+router.post('/subdomains/:id/toggle', (req, res) => {
+  const priceMonitor = req.app.get('priceMonitor');
+  const { enabled } = req.body;
+  const subdomain = priceMonitor.subdomains.find(s => s.id === req.params.id);
+  if (!subdomain) {
+    return res.status(404).json({ error: 'Subdomain not found' });
+  }
+  subdomain.enabled = enabled;
+  priceMonitor.saveConfig();
+  priceMonitor.broadcast({ type: 'subdomains', data: priceMonitor.subdomains });
+  res.json({ success: true, message: `${subdomain.name} ${enabled ? 'enabled' : 'disabled'}` });
+});
+
 // Start monitoring
 router.post('/monitor/start', async (req, res) => {
   const priceMonitor = req.app.get('priceMonitor');

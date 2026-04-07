@@ -65,6 +65,10 @@ class PriceMonitorApp {
         this.browserOpen = true;
         this.updateButtonStates();
         break;
+      case 'browser_closed':
+        this.browserOpen = false;
+        this.updateStatus(false);
+        break;
       case 'price_check':
         this.priceCheckCount++;
         this.updateCounts();
@@ -81,8 +85,8 @@ class PriceMonitorApp {
   }
 
   updateCounts() {
-    document.getElementById('priceCheckCount').textContent = `Price Check: ${this.priceCheckCount}`;
-    document.getElementById('orderPlaceCount').textContent = `Order Place: ${this.orderPlaceCount}`;
+    document.getElementById('priceCheckCount').textContent = `P: ${this.priceCheckCount}`;
+    document.getElementById('orderPlaceCount').textContent = `O: ${this.orderPlaceCount}`;
     const cycleEl = document.getElementById('cycleTime');
     if (cycleEl && this.lastCycleTimeMs > 0) {
       cycleEl.textContent = `Cycle: ${this.lastCycleTimeMs}ms`;
@@ -116,10 +120,8 @@ class PriceMonitorApp {
 
   async loadCompanyConfig() {
     try {
-      // Load companies from central config (config/companies.js) via API
       const res = await fetch('/api/companies');
       const companies = await res.json();
-      // Convert to frontend format: { SYMBOL: { enabled, targetPrice } }
       this.companyConfig = {};
       for (const [symbol, config] of Object.entries(companies)) {
         this.companyConfig[symbol] = {
@@ -132,18 +134,27 @@ class PriceMonitorApp {
       console.error('Error loading companies from server:', error);
     }
 
-    // Override with localStorage if user has saved custom settings
-    const saved = localStorage.getItem('companyConfig');
-    if (saved) {
-      const savedConfig = JSON.parse(saved);
-      for (const [symbol, config] of Object.entries(savedConfig)) {
-        if (this.companyConfig[symbol]) {
-          this.companyConfig[symbol] = config;
-        }
-      }
-    }
+    // Server config (companies.js) is the source of truth — clear stale localStorage
+    localStorage.removeItem('companyConfig');
 
     this.renderCompanyConfig();
+
+    // Auto-generate and push scripts to server on load
+    const priceScript = this.generatePriceScript();
+    document.getElementById('priceScript').value = priceScript;
+    fetch('/api/price-script', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ script: priceScript })
+    });
+
+    const orderScript = this.generateOrderScript();
+    document.getElementById('orderScript').value = orderScript;
+    fetch('/api/order-script', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ script: orderScript })
+    });
   }
 
   async loadAccounts() {
@@ -158,13 +169,11 @@ class PriceMonitorApp {
   }
 
   populateDomainOptions() {
-    // Extract unique domains from accounts
     const domains = [...new Set((this.accounts || []).map(a => a.domain))];
     const domainSelect = document.getElementById('subdomainDomain');
     if (!domainSelect || domains.length === 0) return;
 
     domainSelect.innerHTML = domains.map(d => `<option value="${d}">${d}</option>`).join('');
-    // Add "other" option for custom domains
     domainSelect.innerHTML += '<option value="__custom__">Custom...</option>';
 
     domainSelect.addEventListener('change', () => {
@@ -180,11 +189,21 @@ class PriceMonitorApp {
     if (!container) return;
 
     container.innerHTML = Object.entries(this.companyConfig).map(([company, config]) => `
-      <div class="company-row">
-        <label><input type="checkbox" id="chk_${company}" ${config.enabled ? 'checked' : ''}> ${company}</label>
-        <input type="number" id="price_${company}" value="${config.targetPrice}" step="0.1" placeholder="Target Price">
+      <div class="company-chip ${config.enabled ? '' : 'disabled'}">
+        <label>
+          <input type="checkbox" id="chk_${company}" ${config.enabled ? 'checked' : ''}
+            onchange="app.quickSaveCompany()"> ${company}
+        </label>
+        <input type="number" id="price_${company}" value="${config.targetPrice}" step="0.1"
+          onchange="app.quickSaveCompany()">
       </div>
     `).join('');
+  }
+
+  quickSaveCompany() {
+    // Debounce saves
+    clearTimeout(this._saveTimeout);
+    this._saveTimeout = setTimeout(() => this.saveCompanyConfig(), 300);
   }
 
   saveCompanyConfig() {
@@ -197,16 +216,13 @@ class PriceMonitorApp {
         targetPrice: priceInput ? parseFloat(priceInput.value) : 0
       };
     });
-    localStorage.setItem('companyConfig', JSON.stringify(this.companyConfig));
 
-    // Update server config (targetPrice for price checking)
     fetch('/api/company-config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(this.companyConfig)
     });
 
-    // Sync ORDER_PRICE across ALL accounts for each symbol via single endpoint
     companies.forEach(company => {
       const price = this.companyConfig[company].targetPrice;
       fetch(`/api/symbol-price/${company}`, {
@@ -216,7 +232,6 @@ class PriceMonitorApp {
       });
     });
 
-    // Auto-regenerate price check script so NEPSE price check reflects updated symbols
     const newScript = this.generatePriceScript();
     document.getElementById('priceScript').value = newScript;
     fetch('/api/price-script', {
@@ -225,7 +240,14 @@ class PriceMonitorApp {
       body: JSON.stringify({ script: newScript })
     });
 
-    this.addLog('Company config saved (price synced to all accounts)', 'success');
+    this.renderCompanyConfig();
+    this.renderSubdomains();
+    this.addLog('Config saved', 'success');
+  }
+
+  toggleAddForm() {
+    const form = document.getElementById('addAccountForm');
+    form.style.display = form.style.display === 'none' ? '' : 'none';
   }
 
   async addSubdomain() {
@@ -234,7 +256,6 @@ class PriceMonitorApp {
     const role = document.getElementById('subdomainRole').value;
     const type = document.getElementById('subdomainType').value;
 
-    // Get domain from select or custom input
     const domainSelect = document.getElementById('subdomainDomain');
     const customDomainInput = document.getElementById('subdomainDomainCustom');
     let domain = domainSelect.value;
@@ -251,7 +272,6 @@ class PriceMonitorApp {
     const scriptId = tms;
     const accountId = name;
 
-    // Collect ATS fields if type is 'ats'
     const broker = document.getElementById('subdomainBroker')?.value.trim() || '';
     const acntid = document.getElementById('subdomainAcntid')?.value.trim() || '';
     const clientAcc = document.getElementById('subdomainClientAcc')?.value.trim() || '';
@@ -277,11 +297,10 @@ class PriceMonitorApp {
         if (document.getElementById('subdomainBroker')) document.getElementById('subdomainBroker').value = '';
         if (document.getElementById('subdomainAcntid')) document.getElementById('subdomainAcntid').value = '';
         if (document.getElementById('subdomainClientAcc')) document.getElementById('subdomainClientAcc').value = '';
-        this.addLog(`Added account: ${name} (${tms}.${domain}, ${role}, ${type})`, 'success');
+        this.addLog(`Added: ${name}`, 'success');
       }
     } catch (error) {
-      console.error('Error adding subdomain:', error);
-      this.addLog('Error adding subdomain', 'error');
+      this.addLog('Error adding account', 'error');
     }
   }
 
@@ -298,11 +317,10 @@ class PriceMonitorApp {
       const res = await fetch('/api/subdomains/sync', { method: 'POST' });
       const result = await res.json();
       if (result.success) {
-        this.addLog(`Sync complete: ${result.added} new subdomains (${result.total} in config)`, 'success');
+        this.addLog(`Synced: +${result.added} (${result.total} total)`, 'success');
       }
     } catch (error) {
-      console.error('Error syncing subdomains:', error);
-      this.addLog('Error syncing subdomains', 'error');
+      this.addLog('Error syncing', 'error');
     }
   }
 
@@ -313,7 +331,7 @@ class PriceMonitorApp {
       if (result.success) {
         this.browserOpen = true;
         this.updateButtonStates();
-        this.addLog(`Opened ${accountId} — log in manually`, 'success');
+        this.addLog(`Opened ${accountId}`, 'success');
       } else {
         this.addLog(`Error: ${result.error}`, 'error');
       }
@@ -323,29 +341,26 @@ class PriceMonitorApp {
   }
 
   async removeSubdomain(id) {
-    if (!confirm('Remove this subdomain?')) return;
-
+    if (!confirm('Remove this account?')) return;
     try {
       await fetch(`/api/subdomains/${id}`, { method: 'DELETE' });
-      this.addLog('Subdomain removed', 'success');
+      this.addLog('Account removed', 'success');
     } catch (error) {
-      console.error('Error removing subdomain:', error);
+      console.error('Error removing:', error);
     }
   }
 
   async updateSubdomainRole(id, role) {
     const subdomain = this.subdomains.find(s => s.id === id);
     if (!subdomain) return;
-
     try {
       await fetch('/api/subdomains', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...subdomain, role })
       });
-      this.addLog(`Updated ${subdomain.name} role to: ${role}`, 'info');
     } catch (error) {
-      console.error('Error updating subdomain role:', error);
+      console.error('Error updating role:', error);
     }
   }
 
@@ -373,145 +388,173 @@ class PriceMonitorApp {
     for (const subdomain of this.subdomains) {
       await this.toggleSubdomainRole(subdomain.id, aspect, checked);
     }
-    const label = aspect === 'price' ? 'Price' : 'Order';
-    this.addLog(`${checked ? 'Checked' : 'Unchecked'} all ${label}`, 'success');
+    this.addLog(`${checked ? 'Enabled' : 'Disabled'} all ${aspect}`, 'success');
   }
 
-  renderOrderSummary() {
-    const el = document.getElementById('orderSummary');
-    if (!el) return;
-
-    const oq = this.orderQuantities || {};
-    // Collect unique symbols with their config (same price across all subdomains)
-    const symbols = {};
-    for (const sub of Object.values(oq)) {
-      for (const [sym, cfg] of Object.entries(sub)) {
-        if (!symbols[sym]) symbols[sym] = cfg;
+  async checkAllSymbol(symbol, checked) {
+    // Toggle a symbol across ALL accounts
+    const promises = this.subdomains.map(async (subdomain) => {
+      const orderKey = this.getOrderKey(subdomain);
+      await this.toggleSymbol(orderKey, symbol, checked);
+    });
+    // toggleSymbol already reloads orderQuantities, but we batch here
+    for (const subdomain of this.subdomains) {
+      const orderKey = this.getOrderKey(subdomain);
+      if (checked) {
+        const accountSymbols = (this.orderQuantities || {})[orderKey] || {};
+        const existing = accountSymbols[symbol];
+        const company = this.companyConfig[symbol] || {};
+        const config = {
+          ORDER_QTY: (existing && existing.ORDER_QTY) || company.qty || 10,
+          MAX_ORDER_QTY: (existing && existing.MAX_ORDER_QTY) || 1000,
+          ORDER_PRICE: (existing && existing.ORDER_PRICE) || company.targetPrice || 0,
+          BELOW_PRICE: (existing && existing.BELOW_PRICE) || 0,
+          COLLATERAL: (existing && existing.COLLATERAL) || 0
+        };
+        await fetch(`/api/order-quantities/${orderKey}/${symbol}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(config)
+        });
+      } else {
+        await fetch(`/api/order-quantities/${orderKey}/${symbol}`, { method: 'DELETE' });
       }
     }
+    const oqRes = await fetch('/api/order-quantities');
+    this.orderQuantities = await oqRes.json();
+    this.renderSubdomains();
+    this.addLog(`${checked ? 'Enabled' : 'Disabled'} ${symbol} on all accounts`, 'success');
+  }
 
-    if (Object.keys(symbols).length === 0) {
-      el.innerHTML = '<span class="order-tag none">No order config</span>';
-      return;
-    }
-
-    el.innerHTML = Object.entries(symbols).map(([sym, cfg]) =>
-      `<span class="order-tag">${sym}: Rs${cfg.ORDER_PRICE} x${cfg.ORDER_QTY}</span>`
-    ).join('');
+  getOrderKey(subdomain) {
+    return subdomain.type === 'ats' ? subdomain.accountId : subdomain.scriptId;
   }
 
   renderSubdomains() {
     const container = document.getElementById('subdomainsList');
 
-    // Render global order config summary
-    this.renderOrderSummary();
-
     if (this.subdomains.length === 0) {
-      container.innerHTML = '<div class="empty-state">No subdomains added yet.</div>';
+      container.innerHTML = '<div class="empty-state">No accounts configured</div>';
       return;
     }
 
-    container.innerHTML = this.subdomains.map(subdomain => {
+    // Check-all bar: one checkbox per symbol to toggle across all accounts
+    const checkAllItems = Object.entries(this.companyConfig).map(([sym]) => {
+      // Check if this symbol is enabled on ALL accounts
+      const allEnabled = this.subdomains.every(s => {
+        const key = this.getOrderKey(s);
+        const syms = (this.orderQuantities || {})[key] || {};
+        return sym in syms && syms[sym].enabled !== false;
+      });
+      return `<label class="check-all-item">
+        <input type="checkbox" ${allEnabled ? 'checked' : ''}
+          onchange="app.checkAllSymbol('${sym}', this.checked)"> ${sym}
+      </label>`;
+    }).join('');
+
+    // Check if all accounts are enabled
+    const allAccountsEnabled = this.subdomains.every(s => s.enabled);
+
+    const checkAllBar = `<div class="check-all-bar">
+      <label class="check-all-item" style="margin-right: 8px; border-right: 1px solid #334155; padding-right: 12px;">
+        <input type="checkbox" ${allAccountsEnabled ? 'checked' : ''}
+          onchange="app.toggleAllAccounts(this.checked)"> All Accounts
+      </label>
+      ${checkAllItems}
+    </div>`;
+
+    // Account cards
+    const cards = this.subdomains.map(subdomain => {
       const role = subdomain.role || 'both';
       const type = subdomain.type || 'nepse';
-      const roleClass = `role-${role}`;
-      const statusClass = subdomain.status || 'idle';
+      const status = subdomain.status || 'idle';
 
-      const statusEmoji = {
-        idle: '',
-        checking: '🔍',
-        ordering: '📦',
-        order_placed: '✅',
-        order_failed: '❌',
-        error: '⚠️'
-      }[subdomain.status] || '';
-
-      const lastCheckText = subdomain.lastCheck ? new Date(subdomain.lastCheck).toLocaleTimeString() : '-';
-      const typeBadge = `<span class="type-badge ${type}">${type}</span>`;
-      const domainText = subdomain.domain ? `<span class="domain-badge">${subdomain.domain}</span>` : '';
-
-      // Timing
-      const fetchMs = subdomain.fetchTimeMs != null ? `${subdomain.fetchTimeMs}ms` : '-';
-
-      // Order time badge (only show after order)
-      const orderTimeBadge = subdomain.orderTimeMs != null
-        ? `<span class="timing-badge order-time">Order: ${subdomain.orderTimeMs}ms</span>` : '';
-
-      // ATS info (shown inline when type is 'ats')
-      const atsInfo = type === 'ats' && subdomain.broker
-        ? `<div class="ats-info-row">ATS: ${subdomain.broker} / ${subdomain.acntid || '-'}</div>` : '';
-
-      // Build scriptList: show all companies with checkboxes + per-symbol LTP
       const orderKey = this.getOrderKey(subdomain);
       const accountSymbols = (this.orderQuantities || {})[orderKey] || {};
       const prices = subdomain.prices || {};
 
-      const scriptListHtml = Object.entries(this.companyConfig).map(([sym, cfg]) => {
+      // Timing
+      const fetchMs = subdomain.fetchTimeMs;
+      const fetchClass = fetchMs != null ? (fetchMs < 500 ? 'fast' : fetchMs < 2000 ? 'medium' : 'slow') : '';
+      const fetchText = fetchMs != null ? `${fetchMs}ms` : '';
+
+      // Detail rows — always visible
+      const detailRows = Object.entries(this.companyConfig).map(([sym, cfg]) => {
         const isEnabled = sym in accountSymbols && accountSymbols[sym].enabled !== false;
         const symCfg = accountSymbols[sym] || {};
         const p = prices[sym];
         const ltp = p ? p.ltp : '-';
         const target = symCfg.ORDER_PRICE || cfg.targetPrice || '-';
-        const isMatch = p && p.matched;
         const ltpClass = p ? (p.matched ? 'price-match' : 'price-above') : '';
-        const itemClass = isEnabled ? (isMatch ? 'matched' : '') : 'unchecked';
-        const qtyText = isEnabled ? `${symCfg.ORDER_QTY || '-'}|${symCfg.MAX_ORDER_QTY || '-'}` : '';
+        const qtyText = isEnabled ? `${symCfg.ORDER_QTY || '-'} / max ${symCfg.MAX_ORDER_QTY || '-'}` : '';
 
-        return `<div class="script-item ${itemClass}">
-          <label class="script-check">
+        return `<div class="detail-row">
+          <label class="detail-check">
             <input type="checkbox" ${isEnabled ? 'checked' : ''}
               onchange="app.toggleSymbol('${orderKey}', '${sym}', this.checked)"> ${sym}
           </label>
-          <span class="script-ltp ${ltpClass}">${ltp}</span>
-          <span class="script-target">/ ${target}</span>
-          <span class="script-qty">${qtyText}</span>
+          <span class="detail-ltp ${ltpClass}">${ltp}</span>
+          <span class="detail-target">/ ${target}</span>
+          <span class="detail-qty">${qtyText}</span>
         </div>`;
       }).join('');
 
+      // ATS info
+      const atsInfo = type === 'ats' && subdomain.broker
+        ? `<span class="badge broker">${subdomain.broker}</span>` : '';
+
       return `
-        <div class="subdomain-item ${roleClass} ${statusClass} ${subdomain.enabled ? '' : 'disabled'}">
-          <div class="subdomain-role-indicator ${role}"></div>
-          <div class="subdomain-info">
-            <div class="subdomain-name">${statusEmoji} ${subdomain.name} ${typeBadge} ${domainText}</div>
-            ${atsInfo}
-            <div class="script-list">${scriptListHtml}</div>
-            <div class="subdomain-timing-row">
-              <span class="timing-badge fetch-time">Fetch: ${fetchMs}</span>
-              ${orderTimeBadge}
-              <span class="timing-badge last-check">Last: ${lastCheckText}</span>
+        <div class="account-card ${status} ${subdomain.enabled ? '' : 'disabled'}">
+          <div class="account-header">
+            <input type="checkbox" class="account-enable-cb" ${subdomain.enabled ? 'checked' : ''}
+              onchange="app.toggleAccountEnabled('${subdomain.id}', this.checked)" title="Enable/Disable account">
+            <span class="account-type-dot ${type}"></span>
+            <span class="account-name">${subdomain.name}</span>
+            <div class="account-badges">
+              <span class="badge ${type}">${type}</span>
+              <span class="badge domain">${subdomain.domain || ''}</span>
+              ${atsInfo}
+            </div>
+            <div class="account-role-checks">
+              <label class="role-mini price">
+                <input type="checkbox" ${role === 'price' || role === 'both' ? 'checked' : ''}
+                  onchange="app.toggleSubdomainRole('${subdomain.id}', 'price', this.checked)"> P
+              </label>
+              <label class="role-mini order">
+                <input type="checkbox" ${role === 'order' || role === 'both' ? 'checked' : ''}
+                  onchange="app.toggleSubdomainRole('${subdomain.id}', 'order', this.checked)"> O
+              </label>
+            </div>
+            <div class="account-timing">
+              <span class="timing-sm ${fetchClass}">${fetchText}</span>
+            </div>
+            <div class="account-actions">
+              <button class="btn btn-xs" onclick="app.openSingleAccount('${subdomain.accountId}')">Open</button>
+              <button class="btn btn-xs btn-danger" onclick="app.removeSubdomain('${subdomain.id}')">X</button>
             </div>
           </div>
-          <div class="subdomain-role-checkboxes">
-            <label class="role-checkbox price-cb" title="Price Check">
-              <input type="checkbox" ${role === 'price' || role === 'both' ? 'checked' : ''}
-                onchange="app.toggleSubdomainRole('${subdomain.id}', 'price', this.checked)"> P
-            </label>
-            <label class="role-checkbox order-cb" title="Order Place">
-              <input type="checkbox" ${role === 'order' || role === 'both' ? 'checked' : ''}
-                onchange="app.toggleSubdomainRole('${subdomain.id}', 'order', this.checked)"> O
-            </label>
-          </div>
-          <div class="subdomain-actions">
-            <button class="btn btn-small" onclick="app.openSingleAccount('${subdomain.accountId}')" title="Open browser tab">&#9654;</button>
-            <button class="btn btn-danger btn-small" onclick="app.removeSubdomain('${subdomain.id}')">X</button>
+          <div class="account-detail">
+            ${detailRows}
           </div>
         </div>
       `;
     }).join('');
+
+    container.innerHTML = checkAllBar + cards;
   }
 
   loadDefaultPriceScript() {
     const script = this.generatePriceScript();
     document.getElementById('priceScript').value = script;
     this.setPriceScript();
-    this.addLog('Default price check script loaded', 'success');
+    this.addLog('Price script loaded', 'success');
   }
 
   loadDefaultOrderScript() {
     const script = this.generateOrderScript();
     document.getElementById('orderScript').value = script;
     this.setOrderScript();
-    this.addLog('Default order script loaded', 'success');
+    this.addLog('Order script loaded', 'success');
   }
 
   generatePriceScript() {
@@ -521,7 +564,7 @@ class PriceMonitorApp {
       .join(',\n    ');
 
     return `// Auto-generated Price Check Script
-// Gets scrip ID from localStorage.__securities__
+// Uses full TMS headers from localStorage for authentication
 
 const COMPANIES = {
     ${enabledCompanies}
@@ -538,26 +581,52 @@ function getCookie(name) {
     return null;
 }
 
-function getHeader() {
-    var xsrfToken = getCookie("XSRF-TOKEN") || "";
-    var authToken = localStorage.getItem("id_token");
-    var header = { "accept": "application/json, text/plain, */*" };
-    if (xsrfToken) {
-        header["x-xsrf-token"] = xsrfToken;
-    } else if (authToken) {
-        header["Authorization"] = "Bearer " + authToken;
-    }
-    return header;
+var xsref_token = getCookie("XSRF-TOKEN");
+var auth_token = localStorage.getItem("id_token");
+var host = document.location.origin;
+var referral = host + "/tms/me/memberclientorderentry";
+
+// Extract membercode from hostname (e.g. tms93 → 93)
+var memberCode = (document.location.hostname.match(/tms(\\d+)/) || [])[1] || '';
+
+var hostSessionId = '';
+try { hostSessionId = btoa(localStorage.getItem("suid")); } catch(e) {}
+
+var requestOwner = '';
+try { requestOwner = JSON.parse(localStorage.getItem("__usrsession__")).user.id; } catch(e) {}
+
+var header = {
+    "accept": "application/json, text/plain, */*",
+    "host-session-id": hostSessionId,
+    "request-owner": requestOwner,
+    "membercode": memberCode,
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+};
+
+if (xsref_token) {
+    header["x-xsrf-token"] = xsref_token;
+} else if (auth_token) {
+    header["Authorization"] = "Bearer " + auth_token;
 }
+
+var httpFetchGet = {
+    "credentials": "include",
+    "headers": header,
+    "referrer": referral,
+    "method": "GET",
+    "mode": "cors"
+};
 
 async function refreshToken() {
     try {
-        var host = document.location.origin;
-        var referral = host + "/tms/me/memberclientorderentry";
+        var refreshHeader = Object.assign({}, header);
+        refreshHeader["content-type"] = "application/json";
         var res = await fetch(host + "/tmsapi/authApi/authenticate/refresh", {
             method: "POST",
-            headers: getHeader(),
-            referrer: referral,
+            headers: refreshHeader,
+            referrer: host + "/tms/me/memberclientorderentry",
             referrerPolicy: "strict-origin-when-cross-origin",
             body: null,
             mode: "cors",
@@ -567,6 +636,10 @@ async function refreshToken() {
         if (data.status === 200 && data.data) {
             localStorage.setItem("id_token", data.data.access_token);
             if (data.data.refresh_token) localStorage.setItem("refresh_token", data.data.refresh_token);
+            auth_token = data.data.access_token;
+            if (data.data.xsrf_token) xsref_token = data.data.xsrf_token;
+            header["x-xsrf-token"] = xsref_token;
+            header["Authorization"] = "Bearer " + auth_token;
             return true;
         }
         return true;
@@ -576,12 +649,7 @@ async function refreshToken() {
 }
 
 async function checkPrices() {
-    var host = document.location.origin;
-
-    // Get scrip list from localStorage (same as your original code)
     var totalScripList = JSON.parse(localStorage.getItem("__securities__")).data;
-
-    var header = getHeader();
 
     var lastSymbol = null;
     var lastLtp = 0;
@@ -590,7 +658,6 @@ async function checkPrices() {
     for (const [symbol, config] of Object.entries(COMPANIES)) {
         if (!config.enabled) continue;
 
-        // Find scrip by symbol to get its ID and ISIN
         var scrip = totalScripList.find(s => s.symbol === symbol);
         if (!scrip) {
             console.warn('Scrip not found:', symbol);
@@ -598,22 +665,15 @@ async function checkPrices() {
         }
 
         try {
-            // Use scrip.id and scrip.isin from localStorage
             var url = host + "/tmsapi/rtApi/stock/validation/ohlc/" + scrip.id + "/" + scrip.isin;
-
-            var res = await fetch(url, {
-                credentials: "include",
-                headers: header
-            });
-
+            var res = await fetch(url, httpFetchGet);
             var data = await res.json();
 
             // Handle 401 — refresh token and retry once
             if (data.status === "401" || data.status === 401) {
                 var refreshed = await refreshToken();
                 if (refreshed) {
-                    header = getHeader();
-                    res = await fetch(url, { credentials: "include", headers: header });
+                    res = await fetch(url, httpFetchGet);
                     data = await res.json();
                 }
             }
@@ -622,8 +682,7 @@ async function checkPrices() {
             if (data.status === "500" && data.level === "OAUTH") {
                 var refreshed = await refreshToken();
                 if (refreshed) {
-                    header = getHeader();
-                    res = await fetch(url, { credentials: "include", headers: header });
+                    res = await fetch(url, httpFetchGet);
                     data = await res.json();
                 }
             }
@@ -651,7 +710,6 @@ async function checkPrices() {
         }
     }
 
-    // No match - return last fetched price so dashboard shows actual LTP
     var reportSymbol = lastSymbol || Object.keys(COMPANIES)[0];
     return JSON.stringify({
         company: reportSymbol,
@@ -666,51 +724,152 @@ return await checkPrices();`;
 
   generateOrderScript() {
     return `// Auto-generated Order Script
-// Gets scrip ID from localStorage.__securities__
+// Full HTTP POST order placement matching working TMS script
 
-var company = window.MATCHED_COMPANY || 'NLO';
-console.log('Placing order for: ' + company + ' on subdomain: ' + scriptId);
+var company = window.MATCHED_COMPANY || 'HFIN';
+var orderQty = window.ORDER_QTY || 10;
+var orderPrice = window.ORDER_PRICE || 0;
+var maxOrderQty = window.MAX_ORDER_QTY || 100;
 
-// Get scrip data from localStorage
+console.log('Placing order for: ' + company + ' qty=' + orderQty + ' price=' + orderPrice);
+
+// --- Auth & Headers (same as working script) ---
+function getCookie(name) {
+    var nameEQ = name + "=";
+    var ca = document.cookie.split(';');
+    for (var i = 0; i < ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+}
+
+var xsref_token = getCookie("XSRF-TOKEN");
+var auth_token = localStorage.getItem("id_token");
+var host = document.location.origin;
+var referral = host + "/tms/me/memberclientorderentry";
+var orderBook_url = host + "/tmsapi/orderApi/order/";
+
+var hostSessionId = '';
+try { hostSessionId = btoa(localStorage.getItem("suid")); } catch(e) {}
+var requestOwner = '';
+try { requestOwner = JSON.parse(localStorage.getItem("__usrsession__")).user.id; } catch(e) {}
+
+var header = {
+    "accept": "application/json, text/plain, */*",
+    "content-type": "application/json",
+    "host-session-id": hostSessionId,
+    "request-owner": requestOwner,
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+};
+if (xsref_token) {
+    header["x-xsrf-token"] = xsref_token;
+} else if (auth_token) {
+    header["Authorization"] = "Bearer " + auth_token;
+}
+
+async function refreshToken() {
+    try {
+        var res = await fetch(host + "/tmsapi/authApi/authenticate/refresh", {
+            method: "POST", headers: header, referrer: referral,
+            referrerPolicy: "strict-origin-when-cross-origin",
+            body: null, mode: "cors", credentials: "include"
+        });
+        var data = await res.json();
+        if (data.status === 200 && data.data) {
+            localStorage.setItem("id_token", data.data.access_token);
+            auth_token = data.data.access_token;
+            if (data.data.xsrf_token) xsref_token = data.data.xsrf_token;
+            header["x-xsrf-token"] = xsref_token;
+            header["Authorization"] = "Bearer " + auth_token;
+            return true;
+        }
+        return true;
+    } catch(e) { return false; }
+}
+
+// --- Get scrip & client data ---
 var totalScripList = JSON.parse(localStorage.getItem("__securities__")).data;
 var scrip = totalScripList.find(function(s) { return s.symbol === company; });
-
 if (!scrip) {
-    console.error('Scrip not found in localStorage: ' + company);
     return { success: false, message: 'Scrip not found: ' + company };
 }
 
-console.log('Found scrip - ID: ' + scrip.id + ', Symbol: ' + scrip.symbol);
+var sessionData = JSON.parse(localStorage.getItem("__usrsession__"));
+var clientData = sessionData.clientDealerMember.client;
 
-// Try your existing functions (if loaded in browser)
-if (typeof upMultipleScrips === 'function') {
-    console.log('Using upMultipleScrips()');
-    upMultipleScrips([company]);
-    return { success: true, company: company, scripId: scrip.id };
+// --- Build order body (matching working script structure) ---
+var orderBody = {
+    orderBook: {
+        orderBookExtensions: [{
+            orderTypes: { id: 1, orderTypeCode: "LMT" },
+            disclosedQuantity: 0,
+            orderValidity: { id: 1, orderValidityCode: "DAY" },
+            triggerPrice: 0,
+            orderPrice: parseFloat((orderPrice * 1.02).toFixed(3).slice(0, -2)),
+            orderQuantity: orderQty,
+            remainingOrderQuantity: orderQty,
+            marketType: { id: 2, marketType: "Continuous" }
+        }],
+        exchange: { id: 1 },
+        dnaConnection: {},
+        dealer: {},
+        member: {},
+        productType: { id: 1, productCode: "CNC" },
+        instrumentType: { id: 1, code: "EQ" },
+        buyOrSell: 1,
+        client: clientData,
+        security: {
+            id: scrip.id,
+            exchangeSecurityId: scrip.exchangeSecurityId,
+            marketProtectionPercentage: 0,
+            divisor: 100,
+            boardLotQuantity: 1,
+            tickSize: 0.1
+        },
+        accountType: 1,
+        cpMemberId: 0
+    },
+    orderPlacedBy: 2,
+    exchangeOrderId: null
+};
+
+// --- Place order ---
+async function placeOrder(body) {
+    var res = await fetch(orderBook_url, {
+        credentials: "include",
+        headers: header,
+        referrer: referral,
+        body: JSON.stringify(body),
+        method: "POST",
+        mode: "cors"
+    });
+    return res.json();
 }
 
-if (typeof getProcessedScrips === 'function' && typeof processScriptsSequentially === 'function') {
-    console.log('Using processScriptsSequentially()');
-    var processedScrips = getProcessedScrips([company]);
-    processScriptsSequentially(processedScrips);
-    return { success: true, company: company, scripId: scrip.id };
-}
+try {
+    var result = await placeOrder(orderBody);
 
-if (typeof processScripUntilCircuit === 'function') {
-    console.log('Using processScripUntilCircuit()');
-    processScripUntilCircuit(scrip);
-    return { success: true, company: company, scripId: scrip.id };
-}
+    // Handle 401 - refresh and retry
+    if (result.status === "401" || result.status === 401) {
+        await refreshToken();
+        result = await placeOrder(orderBody);
+    }
 
-// If no functions found, log the scrip info for manual handling
-console.log('No order functions found. Scrip info:', JSON.stringify({
-    id: scrip.id,
-    symbol: scrip.symbol,
-    isin: scrip.isin,
-    exchangeSecurityId: scrip.exchangeSecurityId
-}));
-
-return { success: false, message: 'Order functions not loaded. Load your trading script first.' };`;
+    if (result.status === "200") {
+        console.log('Order placed successfully for ' + company);
+        return { success: true, company: company, scripId: scrip.id, response: result };
+    } else {
+        console.error('Order failed:', result);
+        return { success: false, company: company, message: result.message || result.statusMessage || JSON.stringify(result).substring(0, 300), response: result };
+    }
+} catch(e) {
+    console.error('Order error:', e);
+    return { success: false, company: company, message: e.message };
+}`;
   }
 
   async setPriceScript() {
@@ -723,7 +882,7 @@ return { success: false, message: 'Order functions not loaded. Load your trading
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ script })
       });
-      this.addLog('Price check script saved', 'success');
+      this.addLog('Price script saved', 'success');
     } catch (error) {
       this.addLog('Error saving price script', 'error');
     }
@@ -746,7 +905,6 @@ return { success: false, message: 'Order functions not loaded. Load your trading
   }
 
   async openTMS() {
-    // Save config first
     this.saveCompanyConfig();
 
     const openTmsBtn = document.getElementById('openTmsBtn');
@@ -760,7 +918,7 @@ return { success: false, message: 'Order functions not loaded. Load your trading
       if (result.success) {
         this.browserOpen = true;
         this.updateButtonStates();
-        this.addLog('TMS pages opened - log in to all tabs, then click Start', 'success');
+        this.addLog('TMS opened - log in, then Start', 'success');
       } else {
         openTmsBtn.disabled = false;
         openTmsBtn.textContent = '1. Open TMS';
@@ -775,7 +933,6 @@ return { success: false, message: 'Order functions not loaded. Load your trading
   }
 
   async startMonitoring() {
-    // Save config first
     this.saveCompanyConfig();
 
     try {
@@ -802,9 +959,49 @@ return { success: false, message: 'Order functions not loaded. Load your trading
       await fetch('/api/monitor/stop', { method: 'POST' });
       this.browserOpen = false;
       this.updateStatus(false);
-      this.addLog('Monitoring stopped', 'success');
+      this.addLog('Stopped', 'success');
     } catch (error) {
-      this.addLog('Error stopping monitoring', 'error');
+      this.addLog('Error stopping', 'error');
+    }
+  }
+
+  async closeBrowser() {
+    try {
+      await fetch('/api/browser/close', { method: 'POST' });
+      this.browserOpen = false;
+      this.updateStatus(false);
+      this.addLog('Browser closed', 'success');
+    } catch (error) {
+      this.addLog('Error closing browser', 'error');
+    }
+  }
+
+  async toggleAllAccounts(enabled) {
+    for (const subdomain of this.subdomains) {
+      subdomain.enabled = enabled;
+      await fetch(`/api/subdomains/${subdomain.id}/toggle`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled })
+      });
+    }
+    this.renderSubdomains();
+    this.addLog(`${enabled ? 'Enabled' : 'Disabled'} all accounts`, 'success');
+  }
+
+  async toggleAccountEnabled(id, enabled) {
+    try {
+      await fetch(`/api/subdomains/${id}/toggle`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled })
+      });
+      // Update local state
+      const s = this.subdomains.find(s => s.id === id);
+      if (s) s.enabled = enabled;
+      this.renderSubdomains();
+    } catch (error) {
+      this.addLog('Error toggling account', 'error');
     }
   }
 
@@ -812,22 +1009,26 @@ return { success: false, message: 'Order functions not loaded. Load your trading
     const openTmsBtn = document.getElementById('openTmsBtn');
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
+    const closeBtn = document.getElementById('closeBtn');
 
     if (this.isMonitoring) {
       openTmsBtn.disabled = true;
       openTmsBtn.textContent = '1. Open TMS';
       startBtn.disabled = true;
       stopBtn.disabled = false;
+      closeBtn.disabled = false;
     } else if (this.browserOpen) {
       openTmsBtn.disabled = true;
       openTmsBtn.textContent = 'TMS Opened';
       startBtn.disabled = false;
       stopBtn.disabled = true;
+      closeBtn.disabled = false;
     } else {
       openTmsBtn.disabled = false;
       openTmsBtn.textContent = '1. Open TMS';
       startBtn.disabled = true;
       stopBtn.disabled = true;
+      closeBtn.disabled = true;
     }
   }
 
@@ -841,7 +1042,7 @@ return { success: false, message: 'Order functions not loaded. Load your trading
       statusText.textContent = 'Monitoring';
     } else {
       indicator.className = 'status-indicator';
-      statusText.textContent = this.browserOpen ? 'Ready - Log in & Start' : 'Idle';
+      statusText.textContent = this.browserOpen ? 'Ready' : 'Idle';
     }
 
     this.updateButtonStates();
@@ -874,13 +1075,8 @@ return { success: false, message: 'Order functions not loaded. Load your trading
     this.updateCounts();
   }
 
-  getOrderKey(subdomain) {
-    return subdomain.type === 'ats' ? subdomain.accountId : subdomain.scriptId;
-  }
-
   async toggleSymbol(orderKey, symbol, checked) {
     if (checked) {
-      // Enable symbol - use existing config if available, otherwise defaults
       const accountSymbols = (this.orderQuantities || {})[orderKey] || {};
       const existing = accountSymbols[symbol];
       const company = this.companyConfig[symbol] || {};
@@ -897,10 +1093,8 @@ return { success: false, message: 'Order functions not loaded. Load your trading
         body: JSON.stringify(config)
       });
     } else {
-      // Disable symbol (preserves config)
       await fetch(`/api/order-quantities/${orderKey}/${symbol}`, { method: 'DELETE' });
     }
-    // Reload order quantities and re-render
     const oqRes = await fetch('/api/order-quantities');
     this.orderQuantities = await oqRes.json();
     this.renderSubdomains();
@@ -908,9 +1102,8 @@ return { success: false, message: 'Order functions not loaded. Load your trading
 
   handleOrdersComplete(results) {
     const successCount = results.filter(r => r.success).length;
-    this.addLog(`Orders complete: ${successCount}/${results.length} successful`, successCount === results.length ? 'success' : 'warning');
+    this.addLog(`Orders: ${successCount}/${results.length} OK`, successCount === results.length ? 'success' : 'warning');
   }
 }
 
-// Initialize
 const app = new PriceMonitorApp();
